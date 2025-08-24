@@ -20,11 +20,11 @@ fun AppNavigation() {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Login.route // Start at the login screen
+        startDestination = Screen.Home.route // App now starts at the Home screen
     ) {
         composable(Screen.Login.route) {
             LoginScreen(onLoginClick = {
-                // Navigate to home and clear the back stack so the user can't go back to login
+                // After login, go to home and clear the login screen from the back stack
                 navController.navigate(Screen.Home.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
@@ -36,11 +36,15 @@ fun AppNavigation() {
             })
         }
         composable(Screen.DietTracker.route) {
-            // Here's the key change:
-            // We pass the navController's navigateUp function to the screen.
-            DietTrackerScreen(onNavigateUp = {
-                navController.navigateUp()
-            })
+            DietTrackerScreen(
+                onNavigateUp = {
+                    navController.navigateUp()
+                },
+                // Connect the new button to the navigation controller
+                onLoginClick = {
+                    navController.navigate(Screen.Login.route)
+                }
+            )
         }
     }
 }
