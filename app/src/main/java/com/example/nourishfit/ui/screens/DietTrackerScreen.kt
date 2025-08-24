@@ -30,7 +30,10 @@ data class FoodItem(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DietTrackerScreen(onNavigateUp: () -> Unit = {}) {
+fun DietTrackerScreen(
+    onNavigateUp: () -> Unit = {},
+    onLoginClick: () -> Unit = {} // New parameter to handle login navigation
+) {
     // State to hold the list of food items for the day.
     // In a real app, you would get this from a ViewModel or a database.
     val foodItems = remember {
@@ -55,12 +58,17 @@ fun DietTrackerScreen(onNavigateUp: () -> Unit = {}) {
             TopAppBar(
                 title = { Text("Today's Diet") },
                 navigationIcon = {
-                    // This icon is useful if this screen is not the start destination
                     IconButton(onClick = onNavigateUp) {
                         Icon(
                             imageVector = Icons.Default.ArrowBack,
                             contentDescription = "Go back"
                         )
+                    }
+                },
+                // Action button added to the top bar
+                actions = {
+                    TextButton(onClick = onLoginClick) {
+                        Text("Login")
                     }
                 }
             )
@@ -69,7 +77,6 @@ fun DietTrackerScreen(onNavigateUp: () -> Unit = {}) {
             FloatingActionButton(
                 onClick = {
                     // TODO: Implement logic to add a new food item.
-                    // This would typically open a new screen or a dialog.
                 }
             ) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Food")
@@ -90,7 +97,6 @@ fun DietTrackerScreen(onNavigateUp: () -> Unit = {}) {
             }
 
             // --- Meals Section ---
-            // Group food items by meal type
             val groupedMeals = foodItems.groupBy { it.mealType }
 
             groupedMeals.forEach { (mealType, items) ->
@@ -178,7 +184,6 @@ fun FoodListItem(foodItem: FoodItem) {
 
 
 // --- PREVIEW FUNCTION ---
-// This is what allows you to see the UI in the Design/Split tabs in Android Studio.
 @Preview(showBackground = true)
 @Composable
 fun DietTrackerScreenPreview() {
