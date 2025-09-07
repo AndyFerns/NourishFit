@@ -6,6 +6,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,6 +18,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nourishfit.ui.theme.NourishFitTheme
+import java.time.LocalDate
 
 // A simple data class to represent a food item.
 // In a real app, this would likely be more complex.
@@ -32,10 +36,8 @@ data class FoodItem(
 @Composable
 fun DietTrackerScreen(
     onNavigateUp: () -> Unit = {},
-    onLoginClick: () -> Unit = {} // New parameter to handle login navigation
+    onLoginClick: () -> Unit = {}
 ) {
-    // State to hold the list of food items for the day.
-    // In a real app, you would get this from a ViewModel or a database.
     val foodItems = remember {
         mutableStateListOf(
             FoodItem(1, "Scrambled Eggs", "Breakfast", 150, 13, 1, 11),
@@ -46,11 +48,14 @@ fun DietTrackerScreen(
         )
     }
 
-    // Calculate total macros for the summary
     val totalCalories = foodItems.sumOf { it.calories }
     val totalProtein = foodItems.sumOf { it.protein }
     val totalCarbs = foodItems.sumOf { it.carbs }
     val totalFat = foodItems.sumOf { it.fat }
+
+    var showAddDialog by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var currentDate by remember { mutableStateOf(LocalDate.now()) }
 
     Scaffold(
         modifier = Modifier.fillMaxSize(),
@@ -59,13 +64,9 @@ fun DietTrackerScreen(
                 title = { Text("Today's Diet") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateUp) {
-                        Icon(
-                            imageVector = Icons.Default.ArrowBack,
-                            contentDescription = "Go back"
-                        )
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Go back")
                     }
                 },
-                // Action button added to the top bar
                 actions = {
                     TextButton(onClick = onLoginClick) {
                         Text("Login")
@@ -74,11 +75,7 @@ fun DietTrackerScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    // TODO: Implement logic to add a new food item.
-                }
-            ) {
+            FloatingActionButton(onClick = { showAddDialog = true }) {
                 Icon(Icons.Filled.Add, contentDescription = "Add Food")
             }
         }
@@ -88,33 +85,47 @@ fun DietTrackerScreen(
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 80.dp) // Padding for the FAB
+            contentPadding = PaddingValues(bottom = 80.dp)
         ) {
-            // --- Daily Summary Section ---
             item {
+                DaySwitcher(currentDate) { currentDate = it }
+                Spacer(Modifier.height(8.dp))
+                SearchBar(query = searchQuery, onQueryChange = { searchQuery = it })
+                Spacer(Modifier.height(16.dp))
                 DailySummaryCard(totalCalories, totalProtein, totalCarbs, totalFat)
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(Modifier.height(24.dp))
             }
 
-            // --- Meals Section ---
-            val groupedMeals = foodItems.groupBy { it.mealType }
+            val filteredItems =
+                foodItems.filter { it.name.contains(searchQuery, ignoreCase = true) }
+            val groupedMeals = filteredItems.groupBy { it.mealType }
 
             groupedMeals.forEach { (mealType, items) ->
                 item {
                     Text(
-                        text = mealType,
+                        mealType,
                         style = MaterialTheme.typography.headlineSmall,
                         modifier = Modifier.padding(vertical = 8.dp)
                     )
                 }
                 items(items, key = { it.id }) { foodItem ->
-                    FoodListItem(foodItem = foodItem)
-                    Divider(modifier = Modifier.padding(vertical = 8.dp))
+                    FoodListItem(
+                        foodItem = foodItem,
+                        onDelete = { foodItems.remove(it) },
+                        onEdit = { /* TODO: implement edit */ }
+                    )
+                    Divider(Modifier.padding(vertical = 8.dp))
                 }
-                item {
-                    Spacer(modifier = Modifier.height(16.dp))
-                }
+                item { Spacer(Modifier.height(16.dp)) }
             }
+        }
+
+        // Place dialog OUTSIDE LazyColumn
+        if (showAddDialog) {
+            AddFoodDialog(
+                onDismiss = { showAddDialog = false },
+                onAddFood = { newFood -> foodItems.add(newFood) }
+            )
         }
     }
 }
@@ -158,7 +169,11 @@ fun MacroInfo(label: String, value: String) {
 }
 
 @Composable
-fun FoodListItem(foodItem: FoodItem) {
+fun FoodListItem(
+    foodItem: FoodItem,
+    onDelete: (FoodItem) -> Unit,
+    onEdit: (FoodItem) -> Unit
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -166,24 +181,133 @@ fun FoodListItem(foodItem: FoodItem) {
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = foodItem.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
             Text(
-                text = "P: ${foodItem.protein}g, C: ${foodItem.carbs}g, F: ${foodItem.fat}g",
+                foodItem.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                "P: ${foodItem.protein}g, C: ${foodItem.carbs}g, F: ${foodItem.fat}g",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
         Text(
-            text = "${foodItem.calories} kcal",
+            "${foodItem.calories} kcal",
             style = MaterialTheme.typography.bodyLarge,
             fontWeight = FontWeight.Medium,
             fontSize = 18.sp
         )
+
+        IconButton(onClick = { onEdit(foodItem) }) {
+            Icon(Icons.Default.Edit, contentDescription = "Edit")
+        }
+        IconButton(onClick = { onDelete(foodItem) }) {
+            Icon(Icons.Default.Delete, contentDescription = "Delete")
+        }
     }
 }
 
+@Composable
+fun AddFoodDialog(
+    onDismiss: () -> Unit,
+    onAddFood: (FoodItem) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var mealType by remember { mutableStateOf("Breakfast") }
+    var calories by remember { mutableStateOf("") }
+    var protein by remember { mutableStateOf("") }
+    var carbs by remember { mutableStateOf("") }
+    var fat by remember { mutableStateOf("") }
 
-// --- PREVIEW FUNCTION ---
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add Food") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(value = name, onValueChange = { name = it }, label = { Text("Food Name") })
+                OutlinedTextField(value = calories, onValueChange = { calories = it }, label = { Text("Calories") })
+                OutlinedTextField(value = protein, onValueChange = { protein = it }, label = { Text("Protein (g)") })
+                OutlinedTextField(value = carbs, onValueChange = { carbs = it }, label = { Text("Carbs (g)") })
+                OutlinedTextField(value = fat, onValueChange = { fat = it }, label = { Text("Fat (g)") })
+
+                var expanded by remember { mutableStateOf(false) }
+                Box {
+                    OutlinedButton(onClick = { expanded = true }, modifier = Modifier.fillMaxWidth()) {
+                        Text(mealType)
+                    }
+                    DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+                        listOf("Breakfast", "Lunch", "Dinner", "Snack").forEach {
+                            DropdownMenuItem(
+                                text = { Text(it) },
+                                onClick = {
+                                    mealType = it
+                                    expanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                if (name.isNotBlank()) {
+                    onAddFood(
+                        FoodItem(
+                            id = (0..100000).random(),
+                            name = name,
+                            mealType = mealType,
+                            calories = calories.toIntOrNull() ?: 0,
+                            protein = protein.toIntOrNull() ?: 0,
+                            carbs = carbs.toIntOrNull() ?: 0,
+                            fat = fat.toIntOrNull() ?: 0
+                        )
+                    )
+                }
+                onDismiss()
+            }) {
+                Text("Add")
+            }
+        },
+        dismissButton = {
+            OutlinedButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
+}
+
+@Composable
+fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = { Text("Search foods") },
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    )
+}
+
+@Composable
+fun DaySwitcher(
+    currentDate: LocalDate,
+    onDateChange: (LocalDate) -> Unit
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        IconButton(onClick = { onDateChange(currentDate.minusDays(1)) }) {
+            Icon(Icons.Default.ArrowBack, contentDescription = "Previous Day")
+        }
+        Text(currentDate.toString(), style = MaterialTheme.typography.titleMedium)
+        IconButton(onClick = { onDateChange(currentDate.plusDays(1)) }) {
+            Icon(Icons.Default.ArrowForward, contentDescription = "Next Day")
+        }
+    }
+}
+
 @Preview(showBackground = true)
 @Composable
 fun DietTrackerScreenPreview() {
