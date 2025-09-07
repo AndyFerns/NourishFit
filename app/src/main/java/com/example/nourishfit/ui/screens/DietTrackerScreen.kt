@@ -19,6 +19,10 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.nourishfit.ui.theme.NourishFitTheme
 import java.time.LocalDate
+import java.time.format.TextStyle
+import java.util.Locale
+import android.app.DatePickerDialog
+import androidx.compose.ui.platform.LocalContext
 
 // A simple data class to represent a food item.
 // In a real app, this would likely be more complex.
@@ -293,6 +297,21 @@ fun DaySwitcher(
     currentDate: LocalDate,
     onDateChange: (LocalDate) -> Unit
 ) {
+    val context = LocalContext.current
+
+    // Format date as "8th September, Monday"
+    val day = currentDate.dayOfMonth
+    val suffix = when {
+        day in 11..13 -> "th"
+        day % 10 == 1 -> "st"
+        day % 10 == 2 -> "nd"
+        day % 10 == 3 -> "rd"
+        else -> "th"
+    }
+    val month = currentDate.month.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    val dayOfWeek = currentDate.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
+    val formattedDate = "$day$suffix $month, $dayOfWeek"
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -301,7 +320,25 @@ fun DaySwitcher(
         IconButton(onClick = { onDateChange(currentDate.minusDays(1)) }) {
             Icon(Icons.Default.ArrowBack, contentDescription = "Previous Day")
         }
-        Text(currentDate.toString(), style = MaterialTheme.typography.titleMedium)
+
+        // Center date with clickable calendar popup
+        TextButton(onClick = {
+            val listener = DatePickerDialog.OnDateSetListener { _, year, monthIndex, dayOfMonth ->
+                val newDate = LocalDate.of(year, monthIndex + 1, dayOfMonth)
+                onDateChange(newDate)
+            }
+
+            DatePickerDialog(
+                context,
+                listener,
+                currentDate.year,
+                currentDate.monthValue - 1,
+                currentDate.dayOfMonth
+            ).show()
+        }) {
+            Text(formattedDate, style = MaterialTheme.typography.titleMedium)
+        }
+
         IconButton(onClick = { onDateChange(currentDate.plusDays(1)) }) {
             Icon(Icons.Default.ArrowForward, contentDescription = "Next Day")
         }
