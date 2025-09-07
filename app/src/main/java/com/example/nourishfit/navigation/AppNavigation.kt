@@ -25,7 +25,7 @@ fun AppNavigation() {
         composable(Screen.Login.route) {
             LoginScreen(onLoginClick = {
                 // After login, go to home and clear the login screen from the back stack
-                navController.navigate(Screen.Home.route) {
+                navController.navigate(Screen.DietTracker.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
                 }
             })
