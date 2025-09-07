@@ -7,6 +7,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.nourishfit.ui.screens.DietTrackerScreen
 import com.example.nourishfit.ui.screens.HomeScreen
 import com.example.nourishfit.ui.screens.LoginScreen
+import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -15,7 +16,7 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun AppNavigation() {
+fun AppNavigation(viewModelFactory: FoodViewModelFactory) {
     val navController = rememberNavController()
 
     NavHost(
@@ -37,6 +38,7 @@ fun AppNavigation() {
         }
         composable(Screen.DietTracker.route) {
             DietTrackerScreen(
+                viewModelFactory = viewModelFactory,
                 onNavigateUp = {
                     navController.navigateUp()
                 },
