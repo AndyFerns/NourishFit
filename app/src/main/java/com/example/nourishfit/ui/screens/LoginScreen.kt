@@ -17,6 +17,8 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.example.nourishfit.ui.theme.NourishFitTheme
+import androidx.compose.ui.tooling.preview.Preview
 
 @Composable
 fun LoginScreen(onLoginClick: () -> Unit) {
@@ -102,5 +104,14 @@ fun LoginScreen(onLoginClick: () -> Unit) {
                 Text("Don't have an account? Sign Up")
             }
         }
+    }
+}
+
+
+// --- Preview function ---
+@Preview(showBackground = true)
+@Composable
+fun LoginScreenPreview() {
+    NourishFitTheme {
     }
 }
