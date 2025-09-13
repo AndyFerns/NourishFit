@@ -4,6 +4,7 @@ plugins {
     id("org.jetbrains.kotlin.android")
     alias(libs.plugins.kotlin.compose)
     id("com.google.devtools.ksp")
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -72,4 +73,10 @@ dependencies {
     // SQLite support
     implementation("androidx.sqlite:sqlite-ktx:2.3.1")
     implementation("androidx.sqlite:sqlite-framework:2.3.1")
+
+    // Firebase - Import the Bill of Materials (BOM)
+    implementation(platform("com.google.firebase:firebase-bom:33.1.0"))
+
+    // Add the dependency for Firebase Authentication
+    implementation("com.google.firebase:firebase-auth-ktx")
 }
