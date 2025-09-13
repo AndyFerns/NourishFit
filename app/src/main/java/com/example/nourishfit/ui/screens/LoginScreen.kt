@@ -3,8 +3,8 @@ package com.example.nourishfit.ui.screens
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Lock
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.*
@@ -17,17 +17,36 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.nourishfit.ui.theme.NourishFitTheme
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.example.nourishfit.ui.viewmodel.LoginUiState
+import com.example.nourishfit.ui.viewmodel.LoginViewModel
 
 @Composable
-fun LoginScreen(onLoginClick: () -> Unit) {
-    var username by rememberSaveable { mutableStateOf("") }
+fun LoginScreen(
+    onLoginSuccess: () -> Unit,
+    viewModel: LoginViewModel = viewModel()
+) {
+    var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
     var isPasswordVisible by rememberSaveable { mutableStateOf(false) }
+    var isLoginMode by rememberSaveable { mutableStateOf(true) }
+
+    val uiState by viewModel.uiState.collectAsState()
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // This effect listens for a success state and navigates when it occurs.
+    LaunchedEffect(uiState) {
+        if (uiState is LoginUiState.Success) {
+            onLoginSuccess()
+        } else if (uiState is LoginUiState.Error) {
+            snackbarHostState.showSnackbar((uiState as LoginUiState.Error).message)
+            viewModel.resetState() // Reset state after showing error
+        }
+    }
 
     Scaffold(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier.fillMaxSize(),
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { innerPadding ->
         Column(
             modifier = Modifier
@@ -50,15 +69,16 @@ fun LoginScreen(onLoginClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(48.dp))
 
-            // Username Field
+            // Email Field (changed from Username)
             OutlinedTextField(
-                value = username,
-                onValueChange = { username = it },
-                label = { Text("Username") },
+                value = email,
+                onValueChange = { email = it },
+                label = { Text("Email") },
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                 leadingIcon = {
-                    Icon(imageVector = Icons.Default.Person, contentDescription = "Username Icon")
+                    Icon(imageVector = Icons.Default.Email, contentDescription = "Email Icon")
                 }
             )
 
@@ -87,31 +107,33 @@ fun LoginScreen(onLoginClick: () -> Unit) {
 
             Spacer(modifier = Modifier.height(32.dp))
 
-            // Login Button
-            Button(
-                onClick = onLoginClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text("Login")
+            // Show loading indicator when in Loading state
+            if (uiState is LoginUiState.Loading) {
+                CircularProgressIndicator()
+            } else {
+                // Login/Sign Up Button
+                Button(
+                    onClick = {
+                        if (isLoginMode) {
+                            viewModel.signIn(email, password)
+                        } else {
+                            viewModel.signUp(email, password)
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                ) {
+                    Text(if (isLoginMode) "Login" else "Sign Up")
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // "Or sign up" text
-            TextButton(onClick = { /* TODO: Handle sign up navigation */ }) {
-                Text("Don't have an account? Sign Up")
+            // Toggle between Login and Sign Up
+            TextButton(onClick = { isLoginMode = !isLoginMode }) {
+                Text(if (isLoginMode) "Don't have an account? Sign Up" else "Already have an account? Login")
             }
         }
-    }
-}
-
-
-// --- Preview function ---
-@Preview(showBackground = true)
-@Composable
-fun LoginScreenPreview() {
-    NourishFitTheme {
     }
 }
