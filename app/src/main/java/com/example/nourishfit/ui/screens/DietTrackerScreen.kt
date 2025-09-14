@@ -24,6 +24,8 @@ import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.*
+
+import com.google.firebase.auth.FirebaseAuth
 import androidx.lifecycle.viewmodel.compose.viewModel
 
 // The local FoodItem data class is no longer needed. We will use FoodEntity from the database.
@@ -43,7 +45,18 @@ fun DietTrackerScreen(
     val foodItems by viewModel.foods.collectAsState()
     val currentDate by viewModel.currentDate.collectAsState()
 
-    // 3. The UI now calculates totals based on the REAL data from the ViewModel.
+    // 3. Check the curr UserState
+    val currentUser = FirebaseAuth.getInstance().currentUser
+    val isAnonymous = currentUser?.isAnonymous ?: true
+
+    // 4. Sign in the user anonymously if they arent logged in at all
+    LaunchedEffect(key1 = Unit) {
+        if (currentUser == null) {
+            FirebaseAuth.getInstance().signInAnonymously()
+        }
+    }
+
+    // 5. The UI now calculates totals based on the REAL data from the ViewModel.
     val totalCalories = foodItems.sumOf { it.calories }
 
     var showAddDialog by remember { mutableStateOf(false) }
@@ -112,7 +125,7 @@ fun DietTrackerScreen(
     }
 }
 
-// Simplified to match your FoodEntity (which only has calories)
+// Simplified to match FoodEntity (which only has calories)
 @Composable
 fun DailySummaryCard(calories: Int) {
     Card(
@@ -143,7 +156,7 @@ fun MacroInfo(label: String, value: String) {
     }
 }
 
-// Updated to display a FoodEntity from your database
+// Updated to display a FoodEntity from database
 @Composable
 fun FoodListItem(
     foodItem: FoodEntity,
