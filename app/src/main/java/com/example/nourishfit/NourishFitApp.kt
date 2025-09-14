@@ -16,7 +16,9 @@ class NourishFitApp : Application() {
             applicationContext,
             AppDatabase::class.java,
             "nourishfit_db"
-        ).build()
+        )
+        .fallbackToDestructiveMigration()
+        .build()
 
         repository = FoodRepository(db.foodDao())
     }
