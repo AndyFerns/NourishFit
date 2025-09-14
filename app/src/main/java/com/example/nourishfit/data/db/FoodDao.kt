@@ -15,6 +15,6 @@ interface FoodDao {
     @Delete
     suspend fun deleteFood(food: FoodEntity)
 
-    @Query("SELECT * FROM foods WHERE date = :date ORDER BY id DESC")
-    fun getFoodsForDate(date: String): Flow<List<FoodEntity>>
+    @Query("SELECT * FROM foods WHERE date = :date AND userID = :userID ORDER BY id DESC")
+    fun getFoodsForDate(date: String, userID: String): Flow<List<FoodEntity>>
 }
