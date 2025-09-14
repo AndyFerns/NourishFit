@@ -24,7 +24,7 @@ fun AppNavigation(viewModelFactory: FoodViewModelFactory) {
         startDestination = Screen.Home.route // App now starts at the Home screen
     ) {
         composable(Screen.Login.route) {
-            LoginScreen(onLoginClick = {
+            LoginScreen(onLoginSuccess = {
                 // After login, go to home and clear the login screen from the back stack
                 navController.navigate(Screen.DietTracker.route) {
                     popUpTo(Screen.Login.route) { inclusive = true }
