@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
 
+    <!-- Create a temp account for unregistered users -->
+    <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:name=".NourishFitApp"
         android:allowBackup="true"
