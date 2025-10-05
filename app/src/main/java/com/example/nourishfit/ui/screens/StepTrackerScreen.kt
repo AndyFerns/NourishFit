@@ -3,8 +3,8 @@ package com.example.nourishfit.ui.screens
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.provider.Settings
 import android.preference.PreferenceManager
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
@@ -125,7 +125,14 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
 @Composable
 fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
     val context = LocalContext.current
-    val locationOverlay = remember { MyLocationNewOverlay(GpsMyLocationProvider(context), MapView(context)) }
+    // A flag to ensure we only center on the first location fix.
+    val hasCenteredMap = remember { mutableStateOf(false) }
+
+    val locationOverlay = remember {
+        // Create the location overlay
+        val provider = GpsMyLocationProvider(context)
+        MyLocationNewOverlay(provider, MapView(context))
+    }
 
     DisposableEffect(Unit) {
         locationOverlay.enableMyLocation()
@@ -142,6 +149,16 @@ fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
                 setMultiTouchControls(true)
                 controller.setZoom(15.0)
                 overlays.add(locationOverlay)
+
+                // Center the map on the user's first known location ---
+                locationOverlay.runOnFirstFix {
+                    // This block of code runs only once, when the GPS gets its first lock.
+                    if (!hasCenteredMap.value) {
+                        // Animate the map to the user's current location.
+                        controller.animateTo(locationOverlay.myLocation, 17.0, 1500L)
+                        hasCenteredMap.value = true
+                    }
+                }
             }
         },
         update = { mapView ->
@@ -156,9 +173,11 @@ fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
                 mapView.overlays.add(polyline)
             }
 
+            // This logic to follow the user during a run is still correct.
             if (isTracking && route.isNotEmpty()) {
                 mapView.controller.animateTo(route.last(), 17.0, 1000)
-            } else if (!isTracking && route.isEmpty()) {
+            } else if (!isTracking && route.isEmpty() && !hasCenteredMap.value) {
+                // Fallback to a default location if GPS isn't available right away
                 val startPoint = GeoPoint(19.0441, 73.0242) // Navi Mumbai
                 mapView.controller.setCenter(startPoint)
             }
@@ -186,7 +205,6 @@ fun PermissionRequestHandler(onGrantPermissionClick: () -> Unit, shouldShowRatio
 
         Button(onClick = {
             if (!shouldShowRationale) {
-                // This intent opens the app's specific settings page
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 val uri = Uri.fromParts("package", context.packageName, null)
                 intent.data = uri
