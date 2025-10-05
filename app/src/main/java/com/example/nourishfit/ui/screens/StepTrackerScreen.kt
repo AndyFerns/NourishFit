@@ -1,7 +1,10 @@
 package com.example.nourishfit.ui.screens
 
 import android.Manifest
+import android.content.Intent
+import android.net.Uri
 import android.preference.PreferenceManager
+import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -11,9 +14,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -40,7 +43,6 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
         )
     )
 
-    // Set up OSMDroid configuration
     LaunchedEffect(Unit) {
         Configuration.getInstance().load(context, PreferenceManager.getDefaultSharedPreferences(context))
         Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
@@ -55,21 +57,13 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
         ) {
             Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
                 if (locationPermissionsState.allPermissionsGranted) {
-                    OsmMapView(
-                        route = trackingState.route
-                    )
+                    OsmMapView(route = trackingState.route)
                 } else {
-                    Column(
-                        Modifier.fillMaxSize(),
-                        verticalArrangement = Arrangement.Center,
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text("Location permission is required to track your run.")
-                        Spacer(Modifier.height(8.dp))
-                        Button(onClick = { locationPermissionsState.launchMultiplePermissionRequest() }) {
-                            Text("Grant Permission")
-                        }
-                    }
+                    // --- THE CHANGE: This UI now handles all permission states ---
+                    PermissionRequestHandler(
+                        onGrantPermissionClick = { locationPermissionsState.launchMultiplePermissionRequest() },
+                        shouldShowRationale = locationPermissionsState.shouldShowRationale
+                    )
                 }
             }
 
@@ -112,11 +106,53 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
     }
 }
 
+// --- NEW HELPER COMPOSABLE for handling permission UI ---
+@Composable
+fun PermissionRequestHandler(
+    onGrantPermissionClick: () -> Unit,
+    shouldShowRationale: Boolean
+) {
+    val context = LocalContext.current
+    Column(
+        Modifier.fillMaxSize().padding(16.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // This text changes based on whether the user has permanently denied the permission
+        val textToShow = if (shouldShowRationale) {
+            // This shows if the user has denied the permission in the past.
+            "Tracking your run requires location access. Please grant the permission to continue."
+        } else {
+            // This shows on first launch and after permanent denial.
+            "Location permission is required for this feature."
+        }
+
+        Text(textToShow, textAlign = TextAlign.Center)
+        Spacer(Modifier.height(16.dp))
+
+        Button(onClick = {
+            // If rationale should be shown, the button just asks again.
+            // If it's permanently denied, this will open the app settings.
+            if (!shouldShowRationale) {
+                val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                val uri = Uri.fromParts("package", context.packageName, null)
+                intent.data = uri
+                context.startActivity(intent)
+            } else {
+                onGrantPermissionClick()
+            }
+        }) {
+            val buttonText = if (!shouldShowRationale) "Open Settings" else "Grant Permission"
+            Text(buttonText)
+        }
+    }
+}
+
+
 @Composable
 fun OsmMapView(route: List<GeoPoint>) {
     val context = LocalContext.current
 
-    // Using AndroidView to host the classic MapView
     AndroidView(
         modifier = Modifier.fillMaxSize(),
         factory = {
@@ -127,10 +163,8 @@ fun OsmMapView(route: List<GeoPoint>) {
             }
         },
         update = { mapView ->
-            // Clear old overlays
             mapView.overlays.clear()
 
-            // Add new route polyline
             if (route.size > 1) {
                 val polyline = Polyline().apply {
                     setPoints(route)
@@ -139,16 +173,13 @@ fun OsmMapView(route: List<GeoPoint>) {
                 }
                 mapView.overlays.add(polyline)
 
-                // Animate to the latest point
                 route.lastOrNull()?.let {
                     mapView.controller.animateTo(it, 17.0, 1000)
                 }
             } else {
-                // Set a default start location if the route is empty
                 val startPoint = GeoPoint(19.0760, 72.8777) // Mumbai
                 mapView.controller.setCenter(startPoint)
             }
-            // Invalidate to redraw the map
             mapView.invalidate()
         }
     )
