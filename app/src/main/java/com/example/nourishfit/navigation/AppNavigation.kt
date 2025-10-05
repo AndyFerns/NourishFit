@@ -4,15 +4,16 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.nourishfit.ui.screens.DietTrackerScreen
+import com.example.nourishfit.ui.screens.AppScreen
 import com.example.nourishfit.ui.screens.HomeScreen
 import com.example.nourishfit.ui.screens.LoginScreen
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 
+// --- THE CHANGE: This is now a simpler, high-level navigation graph ---
 sealed class Screen(val route: String) {
-    object Login : Screen("login")
     object Home : Screen("home")
-    object DietTracker : Screen("diet_tracker")
+    object Login : Screen("login")
+    object App : Screen("app") // Represents the main app container with the bottom bar
 }
 
 @Composable
@@ -21,32 +22,40 @@ fun AppNavigation(viewModelFactory: FoodViewModelFactory) {
 
     NavHost(
         navController = navController,
-        startDestination = Screen.Home.route // App now starts at the Home screen
+        startDestination = Screen.Home.route
     ) {
-        composable(Screen.Login.route) {
-            LoginScreen(onLoginSuccess = {
-                // After login, go to home and clear the login screen from the back stack
-                navController.navigate(Screen.DietTracker.route) {
-                    popUpTo(Screen.Login.route) { inclusive = true }
+        composable(Screen.Home.route) {
+            HomeScreen(onStartTrackingClick = {
+                // From Home, we go to the main App container
+                navController.navigate(Screen.App.route) {
+                    // Prevent going back to the Home screen
+                    popUpTo(Screen.Home.route) { inclusive = true }
                 }
             })
         }
-        composable(Screen.Home.route) {
-            HomeScreen(onStartTrackingClick = {
-                navController.navigate(Screen.DietTracker.route)
+        composable(Screen.Login.route) {
+            LoginScreen(onLoginSuccess = {
+                // After login, go to the main App screen and clear the entire history
+                navController.navigate(Screen.App.route) {
+                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                }
             })
         }
-        composable(Screen.DietTracker.route) {
-            DietTrackerScreen(
-                viewModelFactory = viewModelFactory,
-                onNavigateUp = {
-                    navController.navigateUp()
-                },
-                // Connect the new button to the navigation controller
-                onLoginClick = {
+        // This is the new main destination for your app's core features.
+        composable(Screen.App.route) {
+            AppScreen(
+                foodViewModelFactory = viewModelFactory,
+                onNavigateToLogin = {
                     navController.navigate(Screen.Login.route)
+                },
+                onLogout = {
+                    // On logout, go back to the Home screen and clear the history
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                    }
                 }
             )
         }
     }
 }
+
