@@ -3,9 +3,10 @@ package com.example.nourishfit.ui.screens
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.preference.PreferenceManager
 import android.provider.Settings
+import android.preference.PreferenceManager
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PlayArrow
@@ -29,6 +30,8 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polyline
+import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
+import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -51,35 +54,45 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
     Scaffold(
         topBar = { TopAppBar(title = { Text("Activity Tracker") }) }
     ) { innerPadding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
-            horizontalAlignment = Alignment.CenterHorizontally
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
-                if (locationPermissionsState.allPermissionsGranted) {
-                    OsmMapView(route = trackingState.route)
-                } else {
-                    // --- THE CHANGE: This UI now handles all permission states ---
-                    PermissionRequestHandler(
-                        onGrantPermissionClick = { locationPermissionsState.launchMultiplePermissionRequest() },
-                        shouldShowRationale = locationPermissionsState.shouldShowRationale
-                    )
-                }
+            if (locationPermissionsState.allPermissionsGranted) {
+                OsmMapView(
+                    route = trackingState.route,
+                    isTracking = trackingState.isTracking
+                )
+            } else {
+                PermissionRequestHandler(
+                    onGrantPermissionClick = { locationPermissionsState.launchMultiplePermissionRequest() },
+                    shouldShowRationale = locationPermissionsState.shouldShowRationale
+                )
             }
 
             Column(
-                modifier = Modifier.fillMaxWidth().padding(16.dp),
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth(),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                Surface(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    shadowElevation = 8.dp
                 ) {
-                    StatDisplay(label = "Distance", value = "0.0 km")
-                    StatDisplay(label = "Time", value = "00:00")
-                    StatDisplay(label = "Pace", value = "0'00\"/km")
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        horizontalArrangement = Arrangement.SpaceEvenly
+                    ) {
+                        StatDisplay(label = "Distance", value = "0.0 km")
+                        StatDisplay(label = "Time", value = "00:00")
+                        StatDisplay(label = "Pace", value = "0'00\"/km")
+                    }
                 }
-                Spacer(modifier = Modifier.height(24.dp))
                 LargeFloatingActionButton(
                     onClick = {
                         if (locationPermissionsState.allPermissionsGranted) {
@@ -93,7 +106,9 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
                         }
                     },
                     shape = CircleShape,
-                    modifier = Modifier.size(72.dp)
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .size(72.dp)
                 ) {
                     Icon(
                         imageVector = if (trackingState.isTracking) Icons.Filled.Stop else Icons.Filled.PlayArrow,
@@ -106,34 +121,72 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
     }
 }
 
-// --- NEW HELPER COMPOSABLE for handling permission UI ---
+
 @Composable
-fun PermissionRequestHandler(
-    onGrantPermissionClick: () -> Unit,
-    shouldShowRationale: Boolean
-) {
+fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
+    val context = LocalContext.current
+    val locationOverlay = remember { MyLocationNewOverlay(GpsMyLocationProvider(context), MapView(context)) }
+
+    DisposableEffect(Unit) {
+        locationOverlay.enableMyLocation()
+        onDispose {
+            locationOverlay.disableMyLocation()
+        }
+    }
+
+    AndroidView(
+        modifier = Modifier.fillMaxSize(),
+        factory = {
+            MapView(it).apply {
+                setTileSource(TileSourceFactory.MAPNIK)
+                setMultiTouchControls(true)
+                controller.setZoom(15.0)
+                overlays.add(locationOverlay)
+            }
+        },
+        update = { mapView ->
+            mapView.overlays.removeIf { it is Polyline }
+
+            if (route.size > 1) {
+                val polyline = Polyline().apply {
+                    setPoints(route)
+                    color = 0xFF0000FF.toInt() // Blue color
+                    width = 15f
+                }
+                mapView.overlays.add(polyline)
+            }
+
+            if (isTracking && route.isNotEmpty()) {
+                mapView.controller.animateTo(route.last(), 17.0, 1000)
+            } else if (!isTracking && route.isEmpty()) {
+                val startPoint = GeoPoint(19.0441, 73.0242) // Navi Mumbai
+                mapView.controller.setCenter(startPoint)
+            }
+            mapView.invalidate()
+        }
+    )
+}
+
+@Composable
+fun PermissionRequestHandler(onGrantPermissionClick: () -> Unit, shouldShowRationale: Boolean) {
     val context = LocalContext.current
     Column(
         Modifier.fillMaxSize().padding(16.dp),
         verticalArrangement = Arrangement.Center,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        // This text changes based on whether the user has permanently denied the permission
         val textToShow = if (shouldShowRationale) {
-            // This shows if the user has denied the permission in the past.
             "Tracking your run requires location access. Please grant the permission to continue."
         } else {
-            // This shows on first launch and after permanent denial.
-            "Location permission is required for this feature."
+            "Location permission is required for this feature. Please enable it in settings."
         }
 
         Text(textToShow, textAlign = TextAlign.Center)
         Spacer(Modifier.height(16.dp))
 
         Button(onClick = {
-            // If rationale should be shown, the button just asks again.
-            // If it's permanently denied, this will open the app settings.
             if (!shouldShowRationale) {
+                // This intent opens the app's specific settings page
                 val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
                 val uri = Uri.fromParts("package", context.packageName, null)
                 intent.data = uri
@@ -147,44 +200,6 @@ fun PermissionRequestHandler(
         }
     }
 }
-
-
-@Composable
-fun OsmMapView(route: List<GeoPoint>) {
-    val context = LocalContext.current
-
-    AndroidView(
-        modifier = Modifier.fillMaxSize(),
-        factory = {
-            MapView(it).apply {
-                setTileSource(TileSourceFactory.MAPNIK)
-                setMultiTouchControls(true)
-                controller.setZoom(15.0)
-            }
-        },
-        update = { mapView ->
-            mapView.overlays.clear()
-
-            if (route.size > 1) {
-                val polyline = Polyline().apply {
-                    setPoints(route)
-                    color = android.graphics.Color.BLUE
-                    width = 15f
-                }
-                mapView.overlays.add(polyline)
-
-                route.lastOrNull()?.let {
-                    mapView.controller.animateTo(it, 17.0, 1000)
-                }
-            } else {
-                val startPoint = GeoPoint(19.0760, 72.8777) // Mumbai
-                mapView.controller.setCenter(startPoint)
-            }
-            mapView.invalidate()
-        }
-    )
-}
-
 @Composable
 fun StatDisplay(label: String, value: String) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
