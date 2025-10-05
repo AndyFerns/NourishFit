@@ -91,6 +91,15 @@ dependencies {
 
     implementation("io.coil-kt:coil-compose:2.6.0") // image loading
 
+    // ADD these new OSMDroid lines:
+    implementation("org.osmdroid:osmdroid-android:6.1.18")
+
+    // This is still needed for GPS
+    implementation("com.google.android.gms:play-services-location:21.2.0")
+
+    // This is still needed for permissions
+    implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+
     // Add the dependencies for any other desired Firebase products
     // https://firebase.google.com/docs/android/setup#available-libraries
 }
