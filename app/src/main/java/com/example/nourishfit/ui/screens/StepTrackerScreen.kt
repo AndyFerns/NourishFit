@@ -125,11 +125,9 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
 @Composable
 fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
     val context = LocalContext.current
-    // A flag to ensure we only center on the first location fix.
     val hasCenteredMap = remember { mutableStateOf(false) }
 
     val locationOverlay = remember {
-        // Create the location overlay
         val provider = GpsMyLocationProvider(context)
         MyLocationNewOverlay(provider, MapView(context))
     }
@@ -150,13 +148,13 @@ fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
                 controller.setZoom(15.0)
                 overlays.add(locationOverlay)
 
-                // Center the map on the user's first known location ---
                 locationOverlay.runOnFirstFix {
-                    // This block of code runs only once, when the GPS gets its first lock.
-                    if (!hasCenteredMap.value) {
-                        // Animate the map to the user's current location.
-                        controller.animateTo(locationOverlay.myLocation, 17.0, 1500L)
-                        hasCenteredMap.value = true
+                    // Post the animation to the main UI thread ---
+                    post {
+                        if (!hasCenteredMap.value) {
+                            controller.animateTo(locationOverlay.myLocation, 17.0, 1500L)
+                            hasCenteredMap.value = true
+                        }
                     }
                 }
             }
@@ -167,17 +165,15 @@ fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
             if (route.size > 1) {
                 val polyline = Polyline().apply {
                     setPoints(route)
-                    color = 0xFF0000FF.toInt() // Blue color
+                    color = 0xFF007BFF.toInt() // A nicer blue color
                     width = 15f
                 }
                 mapView.overlays.add(polyline)
             }
 
-            // This logic to follow the user during a run is still correct.
             if (isTracking && route.isNotEmpty()) {
                 mapView.controller.animateTo(route.last(), 17.0, 1000)
             } else if (!isTracking && route.isEmpty() && !hasCenteredMap.value) {
-                // Fallback to a default location if GPS isn't available right away
                 val startPoint = GeoPoint(19.0441, 73.0242) // Navi Mumbai
                 mapView.controller.setCenter(startPoint)
             }
