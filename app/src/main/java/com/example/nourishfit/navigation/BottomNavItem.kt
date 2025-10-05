@@ -5,6 +5,7 @@ import androidx.compose.material.icons.outlined.Assessment
 import androidx.compose.material.icons.outlined.DirectionsRun
 import androidx.compose.material.icons.outlined.RestaurantMenu
 import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material.icons.outlined.FitnessCenter
 import androidx.compose.ui.graphics.vector.ImageVector
 
 // A sealed class to define the items in our Bottom Navigation Bar
