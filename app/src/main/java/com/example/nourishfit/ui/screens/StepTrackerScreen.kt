@@ -32,6 +32,7 @@ import org.osmdroid.views.MapView
 import org.osmdroid.views.overlay.Polyline
 import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
+import java.util.concurrent.TimeUnit
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -88,9 +89,14 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
                         modifier = Modifier.padding(16.dp),
                         horizontalArrangement = Arrangement.SpaceEvenly
                     ) {
-                        StatDisplay(label = "Distance", value = "0.0 km")
-                        StatDisplay(label = "Time", value = "00:00")
-                        StatDisplay(label = "Pace", value = "0'00\"/km")
+                        // Stats are now formatted from live data from the ViewModel
+                        val formattedTime = formatTime(trackingState.timeInMillis)
+                        val formattedDistance = formatDistance(trackingState.distanceMeters)
+                        val formattedPace = formatPace(trackingState.distanceMeters, trackingState.timeInMillis)
+
+                        StatDisplay(label = "Distance", value = formattedDistance)
+                        StatDisplay(label = "Time", value = formattedTime)
+                        StatDisplay(label = "Pace", value = formattedPace)
                     }
                 }
                 LargeFloatingActionButton(
@@ -122,6 +128,35 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
 }
 
 
+private fun formatTime(millis: Long): String {
+    val hours = TimeUnit.MILLISECONDS.toHours(millis)
+    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
+    val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
+    return if (hours > 0) {
+        String.format("%02d:%02d:%02d", hours, minutes, seconds)
+    } else {
+        String.format("%02d:%02d", minutes, seconds)
+    }
+}
+
+private fun formatDistance(meters: Double): String {
+    val kilometers = meters / 1000.0
+    return String.format("%.2f km", kilometers)
+}
+
+private fun formatPace(meters: Double, millis: Long): String {
+    if (meters < 1 || millis < 1000) {
+        return "0'00\"/km"
+    }
+    val kilometers = meters / 1000.0
+    val seconds = millis / 1000.0
+    val secondsPerKm = seconds / kilometers
+    val paceMinutes = (secondsPerKm / 60).toInt()
+    val paceSeconds = (secondsPerKm % 60).toInt()
+    return String.format("%d'%02d\"/km", paceMinutes, paceSeconds)
+}
+
+
 @Composable
 fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
     val context = LocalContext.current
@@ -149,7 +184,6 @@ fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
                 overlays.add(locationOverlay)
 
                 locationOverlay.runOnFirstFix {
-                    // Post the animation to the main UI thread ---
                     post {
                         if (!hasCenteredMap.value) {
                             controller.animateTo(locationOverlay.myLocation, 17.0, 1500L)
@@ -160,7 +194,8 @@ fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
             }
         },
         update = { mapView ->
-            mapView.overlays.removeIf { it is Polyline }
+            val polylines = mapView.overlays.filterIsInstance<Polyline>()
+            mapView.overlays.removeAll(polylines)
 
             if (route.size > 1) {
                 val polyline = Polyline().apply {
