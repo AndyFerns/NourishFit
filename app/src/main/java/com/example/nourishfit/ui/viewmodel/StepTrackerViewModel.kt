@@ -6,7 +6,10 @@ import android.location.Location
 import android.os.Looper
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.nourishfit.data.db.RunEntity
+import com.example.nourishfit.repository.FoodRepository
 import com.google.android.gms.location.*
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,6 +17,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 import org.osmdroid.util.GeoPoint
 
+// The TrackingState data class is unchanged
 data class TrackingState(
     val isTracking: Boolean = false,
     val route: List<GeoPoint> = emptyList(),
@@ -21,20 +25,23 @@ data class TrackingState(
     val timeInMillis: Long = 0L
 )
 
-class StepTrackerViewModel : ViewModel() {
+// --- THE CHANGE: The ViewModel now requires the repository to save runs ---
+class StepTrackerViewModel(private val repository: FoodRepository) : ViewModel() {
 
+    private val auth = FirebaseAuth.getInstance()
     private val _trackingState = MutableStateFlow(TrackingState())
     val trackingState = _trackingState.asStateFlow()
+    private var startTime: Long = 0L
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
     private var locationCallback: LocationCallback? = null
-
     private var timerJob: Job? = null
 
     @SuppressLint("MissingPermission")
     fun startTracking(context: Context) {
-        // Reset state for a new run
+        startTime = System.currentTimeMillis() // Record the start time
         _trackingState.value = TrackingState(isTracking = true)
+        // ... (rest of the startTracking function is the same)
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(context)
 
@@ -73,7 +80,7 @@ class StepTrackerViewModel : ViewModel() {
 
         timerJob = viewModelScope.launch {
             while (_trackingState.value.isTracking) {
-                delay(1000) // wait for 1 second
+                delay(1000)
                 _trackingState.value = _trackingState.value.copy(
                     timeInMillis = _trackingState.value.timeInMillis + 1000
                 )
@@ -83,11 +90,32 @@ class StepTrackerViewModel : ViewModel() {
 
     fun stopTracking() {
         timerJob?.cancel()
-
         locationCallback?.let {
             fusedLocationClient.removeLocationUpdates(it)
         }
         _trackingState.value = _trackingState.value.copy(isTracking = false)
+
+        // --- NEW: Save the run to the database ---
+        saveCompletedRun()
+    }
+
+    private fun saveCompletedRun() {
+        viewModelScope.launch {
+            val finalState = _trackingState.value
+            val userId = auth.currentUser?.uid
+
+            // Only save if the run has a valid user and some data
+            if (userId != null && finalState.distanceMeters > 0 && finalState.timeInMillis > 0) {
+                val run = RunEntity(
+                    timestamp = startTime,
+                    timeInMillis = finalState.timeInMillis,
+                    distanceMeters = finalState.distanceMeters,
+                    route = finalState.route,
+                    userId = userId
+                )
+                repository.addRun(run)
+            }
+        }
     }
 
     override fun onCleared() {
