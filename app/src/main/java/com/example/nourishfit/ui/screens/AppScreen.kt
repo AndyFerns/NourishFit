@@ -12,11 +12,11 @@ import com.example.nourishfit.navigation.BottomNavItem
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
 import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScreen(
-    // --- THE FIX: Add the missing factories as parameters ---
     foodViewModelFactory: FoodViewModelFactory,
     stepTrackerViewModelFactory: StepTrackerViewModelFactory,
     progressViewModelFactory: ProgressViewModelFactory,
@@ -35,11 +35,37 @@ fun AppScreen(
         BottomNavItem.Settings,
     )
 
+    // --- This is now the ONLY Scaffold in your main app ---
     Scaffold(
         topBar = {
-            // This TopAppBar is now dynamic and will show the correct title
-            val title = items.find { it.route == currentDestination?.route }?.title ?: "NourishFit"
-            TopAppBar(title = { Text(title) })
+            // We find the title of the current screen
+            val title = items.find { it.route == currentDestination?.route }?.title ?: ""
+
+            // We check the auth state *here* to decide what to show in the TopAppBar
+            val currentUser = FirebaseAuth.getInstance().currentUser
+            val isAnonymous = currentUser?.isAnonymous ?: true
+
+            TopAppBar(
+                title = { Text(title) },
+                actions = {
+                    // --- ALL AUTH LOGIC IS NOW IN THE MAIN APP BAR ---
+                    if (currentDestination?.route == BottomNavItem.Diet.route) {
+                        if (isAnonymous) {
+                            Button(onClick = onNavigateToLogin) {
+                                Text("Login to Sync")
+                            }
+                        } else {
+                            UserMenu(
+                                userName = currentUser?.email?.substringBefore('@') ?: "User",
+                                onLogout = {
+                                    FirebaseAuth.getInstance().signOut()
+                                    onLogout()
+                                }
+                            )
+                        }
+                    }
+                }
+            )
         },
         bottomBar = {
             NavigationBar {
@@ -66,22 +92,19 @@ fun AppScreen(
             Modifier.padding(innerPadding)
         ) {
             composable(BottomNavItem.Diet.route) {
-                // We now call the '...Content' version of the screen
                 DietTrackerScreenContent(
-                    viewModel = viewModel(factory = foodViewModelFactory),
-                    onLoginClick = onNavigateToLogin,
-                    onLogout = onLogout
+                    viewModel = viewModel(factory = foodViewModelFactory)
+                    // Note: onLoginClick and onLogout are no longer needed here,
+                    // because the TopAppBar in AppScreen is now handling them.
                 )
             }
             composable(BottomNavItem.Steps.route) {
-                // --- THE FIX: We explicitly create the ViewModel using its factory. ---
                 StepTrackerScreenContent(viewModel(factory = stepTrackerViewModelFactory))
             }
             composable(BottomNavItem.Workouts.route) {
                 WorkoutScreenContent()
             }
             composable(BottomNavItem.Progress.route) {
-                // --- THE FIX: We explicitly create the ViewModel using its factory. ---
                 ProgressScreenContent(viewModel(factory = progressViewModelFactory))
             }
             composable(BottomNavItem.Settings.route) {
