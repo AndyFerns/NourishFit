@@ -23,13 +23,14 @@ android {
     }
 
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
         }
+        getByName("debug") {  }
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -42,10 +43,10 @@ android {
         compose = true
         buildConfig = true
     }
-    // This reads the key from local.properties and makes it available
-    buildTypes.all {
-        buildConfigField("String", "GEMINI_API_KEY", "\"${project.findProperty("GEMINI_API_KEY")}\"")
-    }
+//    // This reads the key from local.properties and makes it available
+//    buildTypes.all {
+//        buildConfigField("String", "GEMINI_API_KEY", "\"${project.findProperty("GEMINI_API_KEY")}\"")
+//    }
 }
 
 room {
