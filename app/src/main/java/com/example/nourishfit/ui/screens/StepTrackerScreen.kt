@@ -3,7 +3,7 @@ package com.example.nourishfit.ui.screens
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
-import android.preference.PreferenceManager
+import androidx.preference.PreferenceManager
 import android.provider.Settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,7 +20,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
-import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.nourishfit.BuildConfig
 import com.example.nourishfit.ui.viewmodel.StepTrackerViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
@@ -34,9 +33,10 @@ import org.osmdroid.views.overlay.mylocation.GpsMyLocationProvider
 import org.osmdroid.views.overlay.mylocation.MyLocationNewOverlay
 import java.util.concurrent.TimeUnit
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
+// --- CHANGE: Renamed to 'StepTrackerScreenContent' ---
+@OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
+fun StepTrackerScreenContent(viewModel: StepTrackerViewModel) {
     val context = LocalContext.current
     val trackingState by viewModel.trackingState.collectAsState()
 
@@ -52,109 +52,104 @@ fun StepTrackerScreen(viewModel: StepTrackerViewModel = viewModel()) {
         Configuration.getInstance().userAgentValue = BuildConfig.APPLICATION_ID
     }
 
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Activity Tracker") }) }
-    ) { innerPadding ->
-        Box(
+    // --- THE CHANGE: Removed Scaffold ---
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        if (locationPermissionsState.allPermissionsGranted) {
+            OsmMapView(
+                route = trackingState.route,
+                isTracking = trackingState.isTracking
+            )
+        } else {
+            PermissionRequestHandler(
+                onGrantPermissionClick = { locationPermissionsState.launchMultiplePermissionRequest() },
+                shouldShowRationale = locationPermissionsState.shouldShowRationale
+            )
+        }
+
+        Column(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            if (locationPermissionsState.allPermissionsGranted) {
-                OsmMapView(
-                    route = trackingState.route,
-                    isTracking = trackingState.isTracking
-                )
-            } else {
-                PermissionRequestHandler(
-                    onGrantPermissionClick = { locationPermissionsState.launchMultiplePermissionRequest() },
-                    shouldShowRationale = locationPermissionsState.shouldShowRationale
-                )
-            }
-
-            Column(
+            Surface(
                 modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .fillMaxWidth(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                shadowElevation = 8.dp
             ) {
-                Surface(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    shadowElevation = 8.dp
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    horizontalArrangement = Arrangement.SpaceEvenly
                 ) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        horizontalArrangement = Arrangement.SpaceEvenly
-                    ) {
-                        // Stats are now formatted from live data from the ViewModel
-                        val formattedTime = formatTime(trackingState.timeInMillis)
-                        val formattedDistance = formatDistance(trackingState.distanceMeters)
-                        val formattedPace = formatPace(trackingState.distanceMeters, trackingState.timeInMillis)
+                    val formattedTime = formatTime(trackingState.timeInMillis)
+                    val formattedDistance = formatDistance(trackingState.distanceMeters)
+                    val formattedPace = formatPace(trackingState.distanceMeters, trackingState.timeInMillis)
 
-                        StatDisplay(label = "Distance", value = formattedDistance)
-                        StatDisplay(label = "Time", value = formattedTime)
-                        StatDisplay(label = "Pace", value = formattedPace)
-                    }
+                    StatDisplay(label = "Distance", value = formattedDistance)
+                    StatDisplay(label = "Time", value = formattedTime)
+                    StatDisplay(label = "Pace", value = formattedPace)
                 }
-                LargeFloatingActionButton(
-                    onClick = {
-                        if (locationPermissionsState.allPermissionsGranted) {
-                            if (trackingState.isTracking) {
-                                viewModel.stopTracking()
-                            } else {
-                                viewModel.startTracking(context)
-                            }
+            }
+            LargeFloatingActionButton(
+                onClick = {
+                    if (locationPermissionsState.allPermissionsGranted) {
+                        if (trackingState.isTracking) {
+                            viewModel.stopTracking()
                         } else {
-                            locationPermissionsState.launchMultiplePermissionRequest()
+                            viewModel.startTracking(context)
                         }
-                    },
-                    shape = CircleShape,
-                    modifier = Modifier
-                        .padding(bottom = 16.dp)
-                        .size(72.dp)
-                ) {
-                    Icon(
-                        imageVector = if (trackingState.isTracking) Icons.Filled.Stop else Icons.Filled.PlayArrow,
-                        contentDescription = if (trackingState.isTracking) "Stop Tracking" else "Start Tracking",
-                        modifier = Modifier.size(40.dp)
-                    )
-                }
+                    } else {
+                        locationPermissionsState.launchMultiplePermissionRequest()
+                    }
+                },
+                shape = CircleShape,
+                modifier = Modifier
+                    .padding(bottom = 16.dp)
+                    .size(72.dp)
+            ) {
+                Icon(
+                    imageVector = if (trackingState.isTracking) Icons.Filled.Stop else Icons.Filled.PlayArrow,
+                    contentDescription = if (trackingState.isTracking) "Stop Tracking" else "Start Tracking",
+                    modifier = Modifier.size(40.dp)
+                )
             }
         }
     }
 }
 
-
-private fun formatTime(millis: Long): String {
-    val hours = TimeUnit.MILLISECONDS.toHours(millis)
-    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
-    val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
-    return if (hours > 0) {
-        String.format("%02d:%02d:%02d", hours, minutes, seconds)
-    } else {
-        String.format("%02d:%02d", minutes, seconds)
-    }
-}
-
-private fun formatDistance(meters: Double): String {
-    val kilometers = meters / 1000.0
-    return String.format("%.2f km", kilometers)
-}
-
-private fun formatPace(meters: Double, millis: Long): String {
-    if (meters < 1 || millis < 1000) {
-        return "0'00\"/km"
-    }
-    val kilometers = meters / 1000.0
-    val seconds = millis / 1000.0
-    val secondsPerKm = seconds / kilometers
-    val paceMinutes = (secondsPerKm / 60).toInt()
-    val paceSeconds = (secondsPerKm % 60).toInt()
-    return String.format("%d'%02d\"/km", paceMinutes, paceSeconds)
-}
+//
+//private fun formatTime(millis: Long): String {
+//    val hours = TimeUnit.MILLISECONDS.toHours(millis)
+//    val minutes = TimeUnit.MILLISECONDS.toMinutes(millis) % 60
+//    val seconds = TimeUnit.MILLISECONDS.toSeconds(millis) % 60
+//    return if (hours > 0) {
+//        String.format("%02d:%02d:%02d", hours, minutes, seconds)
+//    } else {
+//        String.format("%02d:%02d", minutes, seconds)
+//    }
+//}
+//
+//private fun formatDistance(meters: Double): String {
+//    val kilometers = meters / 1000.0
+//    return String.format("%.2f km", kilometers)
+//}
+//
+//private fun formatPace(meters: Double, millis: Long): String {
+//    if (meters < 1 || millis < 1000) {
+//        return "0'00\"/km"
+//    }
+//    val kilometers = meters / 1000.0
+//    val seconds = millis / 1000.0
+//    val secondsPerKm = seconds / kilometers
+//    val paceMinutes = (secondsPerKm / 60).toInt()
+//    val paceSeconds = (secondsPerKm % 60).toInt()
+//    return String.format("%d'%02d\"/km", paceMinutes, paceSeconds)
+//}
 
 
 @Composable
