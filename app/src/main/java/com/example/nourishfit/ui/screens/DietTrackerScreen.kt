@@ -35,19 +35,18 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.nourishfit.data.db.FoodEntity
 import com.example.nourishfit.ui.viewmodel.FoodViewModel
+import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.*
 
-// --- THE CHANGE: Renamed to 'DietTrackerScreenContent' ---
-// --- Removed 'onNavigateUp' parameter, as the TopAppBar is now in AppScreen ---
-@OptIn(ExperimentalAnimationApi::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
 @Composable
 fun DietTrackerScreenContent(
     onLoginClick: () -> Unit = {},
     onLogout: () -> Unit = {},
-    viewModel: FoodViewModel // ViewModel is now passed in directly
+    viewModel: FoodViewModel
 ) {
     val foodItems by viewModel.foods.collectAsState()
     val currentDate by viewModel.currentDate.collectAsState()
@@ -60,16 +59,18 @@ fun DietTrackerScreenContent(
         }
     }
 
+    // --- ALL MACROS ARE NOW CALCULATED ---
     val totalCalories = foodItems.sumOf { it.calories }
+    val totalProtein = foodItems.sumOf { it.protein }
+    val totalCarbs = foodItems.sumOf { it.carbs }
+    val totalFat = foodItems.sumOf { it.fat }
+
     var showAddDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    // --- THE CHANGE: Removed Scaffold. The layout is now a Box ---
-    // This Box will fill the content area provided by AppScreen's Scaffold
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
-            // Apply padding for the content AND the floating action buttons
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp)
         ) {
             item {
@@ -77,7 +78,15 @@ fun DietTrackerScreenContent(
                 Spacer(Modifier.height(8.dp))
                 SearchBar(query = searchQuery, onQueryChange = { searchQuery = it })
                 Spacer(Modifier.height(16.dp))
-                CalorieGoalRing(caloriesConsumed = totalCalories, calorieGoal = 2000)
+
+                // --- THE FIX: Pass all macros to the summary card ---
+                DailySummaryCard(
+                    calories = totalCalories,
+                    protein = totalProtein,
+                    carbs = totalCarbs,
+                    fat = totalFat,
+                    calorieGoal = 2000 // Placeholder goal
+                )
                 Spacer(Modifier.height(24.dp))
             }
 
@@ -95,6 +104,7 @@ fun DietTrackerScreenContent(
                             enter = fadeIn(animationSpec = tween(300)) + slideInVertically(initialOffsetY = { it / 2 }),
                             exit = fadeOut(animationSpec = tween(300))
                         ) {
+                            // --- THE FIX: FoodListItem now shows macros ---
                             FoodListItem(
                                 foodItem = foodItem,
                                 onDelete = { viewModel.deleteFood(it) },
@@ -107,7 +117,6 @@ fun DietTrackerScreenContent(
             }
         }
 
-        // --- THE CHANGE: FABs are now aligned to the BottomEnd of the Box ---
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
@@ -133,7 +142,9 @@ fun DietTrackerScreenContent(
         if (showAddDialog) {
             AddFoodDialog(
                 onDismiss = { showAddDialog = false },
-                onAddFood = { name, calories -> viewModel.addFood(name, calories) }
+                onAddFood = { name, calories, protein, carbs, fat ->
+                    viewModel.addFood(name, calories, protein, carbs, fat)
+                }
             )
         }
     }
@@ -163,6 +174,165 @@ fun UserMenu(userName: String, onLogout: () -> Unit) {
         }
     }
 }
+
+// --- THE FIX: This Composable is now updated to show macros ---
+@Composable
+fun DailySummaryCard(
+    calories: Int,
+    protein: Int,
+    carbs: Int,
+    fat: Int,
+    calorieGoal: Int
+) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainer)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text(
+                text = "Daily Summary",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(modifier = Modifier.height(16.dp))
+            CalorieGoalRing(caloriesConsumed = calories, calorieGoal = calorieGoal)
+            Spacer(modifier = Modifier.height(16.dp))
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                MacroInfo(label = "Protein", value = "${protein}g", color = Color(0xFF00C853)) // Green
+                MacroInfo(label = "Carbs", value = "${carbs}g", color = Color(0xFF2979FF)) // Blue
+                MacroInfo(label = "Fat", value = "${fat}g", color = Color(0xFFFFD600)) // Yellow
+            }
+        }
+    }
+}
+
+// --- THE FIX: This Composable is now updated to show macros ---
+@Composable
+fun FoodListItem(
+    foodItem: FoodEntity,
+    onDelete: (FoodEntity) -> Unit,
+    onEdit: (FoodEntity) -> Unit
+) {
+    val haptic = LocalHapticFeedback.current
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp, horizontal = 8.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                foodItem.name,
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.SemiBold
+            )
+            // --- NEW: Show all macros in the list item ---
+            Text(
+                "P: ${foodItem.protein}g, C: ${foodItem.carbs}g, F: ${foodItem.fat}g",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Text(
+            "${foodItem.calories} kcal",
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Spacer(Modifier.width(8.dp))
+        IconButton(onClick = { onEdit(foodItem) }, modifier = Modifier.size(24.dp)) {
+            Icon(Icons.Default.Edit, "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        IconButton(onClick = {
+            haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress)
+            onDelete(foodItem)
+        }, modifier = Modifier.size(24.dp)) {
+            Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error)
+        }
+    }
+}
+
+// --- THE FIX: This Composable is now updated to ask for macros ---
+@Composable
+fun AddFoodDialog(
+    onDismiss: () -> Unit,
+    onAddFood: (name: String, calories: Int, protein: Int, carbs: Int, fat: Int) -> Unit
+) {
+    var name by remember { mutableStateOf("") }
+    var calories by remember { mutableStateOf("") }
+    var protein by remember { mutableStateOf("") }
+    var carbs by remember { mutableStateOf("") }
+    var fat by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Add New Food") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = name,
+                    onValueChange = { name = it },
+                    label = { Text("Food Name") },
+                    leadingIcon = { Icon(Icons.Outlined.Fastfood, null) }
+                )
+                OutlinedTextField(
+                    value = calories,
+                    onValueChange = { calories = it },
+                    label = { Text("Calories (kcal)") },
+                    leadingIcon = { Icon(Icons.Outlined.LocalFireDepartment, null) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+                // --- NEW: Macro input fields ---
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = protein,
+                        onValueChange = { protein = it },
+                        label = { Text("Protein (g)") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                    OutlinedTextField(
+                        value = carbs,
+                        onValueChange = { carbs = it },
+                        label = { Text("Carbs (g)") },
+                        modifier = Modifier.weight(1f),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                    )
+                }
+                OutlinedTextField(
+                    value = fat,
+                    onValueChange = { fat = it },
+                    label = { Text("Fat (g)") },
+                    modifier = Modifier.fillMaxWidth(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = {
+                val cal = calories.toIntOrNull() ?: 0
+                val prot = protein.toIntOrNull() ?: 0
+                val carb = carbs.toIntOrNull() ?: 0
+                val f = fat.toIntOrNull() ?: 0
+
+                if (name.isNotBlank()) {
+                    onAddFood(name, cal, prot, carb, f)
+                }
+                onDismiss()
+            }) {
+                Text("Add Food")
+            }
+        },
+        dismissButton = { TextButton(onDismiss) { Text("Cancel") } }
+    )
+}
+
+// --- All other composables are unchanged ---
+
 @Composable
 fun CalorieGoalRing(caloriesConsumed: Int, calorieGoal: Int, strokeWidth: Dp = 12.dp, ringColor: Color = MaterialTheme.colorScheme.primary, backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer) {
     val progress = (caloriesConsumed.toFloat() / calorieGoal.toFloat()).coerceIn(0f, 1f)
@@ -191,19 +361,6 @@ fun MealHeader(mealType: MealType) {
     }
 }
 @Composable
-fun FoodListItem(foodItem: FoodEntity, onDelete: (FoodEntity) -> Unit, onEdit: (FoodEntity) -> Unit) {
-    val haptic = LocalHapticFeedback.current
-    Row(Modifier.fillMaxWidth().padding(vertical = 12.dp, horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Column(Modifier.weight(1f)) {
-            Text(foodItem.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-        }
-        Text("${foodItem.calories} kcal", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Medium, color = MaterialTheme.colorScheme.primary)
-        Spacer(Modifier.width(8.dp))
-        IconButton({ onEdit(foodItem) }, Modifier.size(24.dp)) { Icon(Icons.Default.Edit, "Edit", tint = MaterialTheme.colorScheme.onSurfaceVariant) }
-        IconButton({ haptic.performHapticFeedback(androidx.compose.ui.hapticfeedback.HapticFeedbackType.LongPress); onDelete(foodItem) }, Modifier.size(24.dp)) { Icon(Icons.Default.Delete, "Delete", tint = MaterialTheme.colorScheme.error) }
-    }
-}
-@Composable
 fun EmptyState() {
     Column(Modifier.fillMaxWidth().padding(vertical = 64.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
         Icon(Icons.Outlined.RestaurantMenu, "No food", Modifier.size(64.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -211,17 +368,6 @@ fun EmptyState() {
         Text("Nothing logged yet", style = MaterialTheme.typography.titleMedium)
         Text("Tap the '+' button to add your first meal.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
-}
-@Composable
-fun AddFoodDialog(onDismiss: () -> Unit, onAddFood: (name: String, calories: Int) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var calories by remember { mutableStateOf("") }
-    AlertDialog(onDismiss, title = { Text("Add New Food") }, text = {
-        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedTextField(name, { name = it }, label = { Text("Food Name") }, leadingIcon = { Icon(Icons.Outlined.Fastfood, null) })
-            OutlinedTextField(calories, { calories = it }, label = { Text("Calories (kcal)") }, leadingIcon = { Icon(Icons.Outlined.LocalFireDepartment, null) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-        }
-    }, confirmButton = { Button({ val cal = calories.toIntOrNull(); if (name.isNotBlank() && cal != null) { onAddFood(name, cal) }; onDismiss() }) { Text("Add Food") } }, dismissButton = { TextButton(onDismiss) { Text("Cancel") } })
 }
 @Composable
 fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
@@ -236,17 +382,12 @@ fun DaySwitcher(currentDate: LocalDate, onDateChange: (LocalDate) -> Unit) {
     val dayOfWeek = currentDate.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
     val formattedDate = "$dayOfWeek, $month $day$suffix"
     val isToday = currentDate == LocalDate.now()
-
     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-        IconButton({ onDateChange(currentDate.minusDays(1)) }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous")
-        }
+        IconButton({ onDateChange(currentDate.minusDays(1)) }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous") }
         TextButton({ DatePickerDialog(context, { _, y, m, d -> onDateChange(LocalDate.of(y, m + 1, d)) }, currentDate.year, currentDate.monthValue - 1, currentDate.dayOfMonth).show() }) {
             Text(if (isToday) "Today" else formattedDate, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
-        IconButton({ onDateChange(currentDate.plusDays(1)) }) {
-            Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next")
-        }
+        IconButton({ onDateChange(currentDate.plusDays(1)) }) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next") }
     }
 }
 enum class MealType(val title: String, val icon: ImageVector) { BREAKFAST("Breakfast", Icons.Outlined.BreakfastDining), LUNCH("Lunch", Icons.Outlined.LunchDining), DINNER("Dinner", Icons.Outlined.DinnerDining), SNACK("Snacks", Icons.Outlined.Fastfood), UNKNOWN("Other", Icons.Outlined.Restaurant) }
@@ -258,5 +399,17 @@ fun String.categorizeFood(): MealType {
         listOf("chicken", "salmon", "steak", "pasta").any { lower.contains(it) } -> MealType.DINNER
         listOf("apple", "banana", "yogurt", "nuts").any { lower.contains(it) } -> MealType.SNACK
         else -> MealType.UNKNOWN
+    }
+}
+@Composable
+fun MacroInfo(label: String, value: String, color: Color = MaterialTheme.colorScheme.onSurface) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = color
+        )
     }
 }
