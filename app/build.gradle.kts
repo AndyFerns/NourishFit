@@ -101,6 +101,11 @@ dependencies {
     // This is still needed for permissions
     implementation("com.google.accompanist:accompanist-permissions:0.34.0")
 
+    // Used to save a list of GPS points into a string
+    implementation("com.google.code.gson:gson:2.10.1")
+
+    implementation("androidx.preference:preference-ktx:1.2.1")
+
     // Add the dependencies for any other desired Firebase products
     // https://firebase.google.com/docs/android/setup#available-libraries
 }
