@@ -17,9 +17,13 @@ class NourishFitApp : Application() {
             AppDatabase::class.java,
             "nourishfit_db"
         )
-        .fallbackToDestructiveMigration()
-        .build()
+            // --- FIX 3: Add this to handle the database version change (from 1 to 2) ---
+            // This will delete the old database and create the new one.
+            .fallbackToDestructiveMigration()
+            .build()
 
-        repository = FoodRepository(db.foodDao())
+        // --- FIX 4: Provide *both* DAOs to the repository's constructor ---
+        repository = FoodRepository(db.foodDao(), db.runDao())
     }
 }
+
