@@ -51,7 +51,8 @@ import androidx.navigation.NavController
 fun DietTrackerScreenContent(
     onNavigateToCamera: () -> Unit,
     viewModel: FoodViewModel,
-    navController: NavController
+    prefilledFoodName: String?,
+    onDialogDismissed: () -> Unit
 ) {
     val foodItems by viewModel.foods.collectAsState()
     val currentDate by viewModel.currentDate.collectAsState()
@@ -69,28 +70,11 @@ fun DietTrackerScreenContent(
     val totalCarbs = foodItems.sumOf { it.carbs }
     val totalFat = foodItems.sumOf { it.fat }
 
-    var showAddDialog by remember { mutableStateOf(false) }
+    // --- THE CHANGE: Dialog visibility is now controlled by the prefilled name ---
+    val showAddDialog = prefilledFoodName != null
     var searchQuery by remember { mutableStateOf("") }
-    // --- State to hold the scanned food name ---
-    var scannedFoodName by remember { mutableStateOf<String?>(null) }
 
-    // Action to wait for result from camera
-    val lifecycleOwner = LocalLifecycleOwner.current
-    LaunchedEffect(navController, lifecycleOwner.lifecycle) {
-        val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
-        // Check if a result is available
-        savedStateHandle?.getStateFlow<String>("scannedFoodName", "")
-            ?.flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.RESUMED)
-            ?.collect { foodName ->
-                if (foodName.isNotBlank()) {
-                    // We got a result!
-                    scannedFoodName = foodName
-                    showAddDialog = true // Open the dialog
-                    // Clear the result so it's not used again
-                    savedStateHandle.set("scannedFoodName", "")
-                }
-            }
-    }
+    // Removed launch effect waiting for the result
 
     // --- CHANGE: Removed Scaffold. The layout is now a Box ---
     Box(modifier = Modifier.fillMaxSize()) {
@@ -157,7 +141,7 @@ fun DietTrackerScreenContent(
                 Icon(Icons.Filled.PhotoCamera, contentDescription = "Scan Food (ML)")
             }
             FloatingActionButton(
-                onClick = { showAddDialog = true },
+                onClick = {  },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -165,13 +149,14 @@ fun DietTrackerScreenContent(
             }
         }
 
+        // --- THE CHANGE: This dialog is now shown based on the prefilled name ---
         if (showAddDialog) {
             AddFoodDialog(
-                prefilledFoodName = scannedFoodName,
-                onDismiss = { showAddDialog = false },
+                prefilledFoodName = prefilledFoodName,
+                onDismiss = onDialogDismissed, // Use the new lambda
                 onAddFood = { name, calories, protein, carbs, fat ->
                     viewModel.addFood(name, calories, protein, carbs, fat)
-                    scannedFoodName = null // Clear the name when food is added
+                    onDialogDismissed() // Also call this after adding food
                 }
             )
         }
