@@ -1,31 +1,31 @@
 package com.example.nourishfit.ui.screens
 
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
-import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.*
 import com.example.nourishfit.navigation.BottomNavItem
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
+import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
+import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AppScreen(
+    // --- THE FIX: Add the missing factories as parameters ---
     foodViewModelFactory: FoodViewModelFactory,
+    stepTrackerViewModelFactory: StepTrackerViewModelFactory,
+    progressViewModelFactory: ProgressViewModelFactory,
     onNavigateToLogin: () -> Unit,
-    // --- THE CHANGE: Add the onLogout callback parameter ---
     onLogout: () -> Unit
 ) {
     val navController = rememberNavController()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = navBackStackEntry?.destination
 
     val items = listOf(
         BottomNavItem.Diet,
@@ -36,11 +36,13 @@ fun AppScreen(
     )
 
     Scaffold(
+        topBar = {
+            // This TopAppBar is now dynamic and will show the correct title
+            val title = items.find { it.route == currentDestination?.route }?.title ?: "NourishFit"
+            TopAppBar(title = { Text(title) })
+        },
         bottomBar = {
             NavigationBar {
-                val navBackStackEntry by navController.currentBackStackEntryAsState()
-                val currentDestination = navBackStackEntry?.destination
-
                 items.forEach { screen ->
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.title) },
@@ -64,24 +66,26 @@ fun AppScreen(
             Modifier.padding(innerPadding)
         ) {
             composable(BottomNavItem.Diet.route) {
-                DietTrackerScreen(
-                    viewModelFactory = foodViewModelFactory,
+                // We now call the '...Content' version of the screen
+                DietTrackerScreenContent(
+                    viewModel = viewModel(factory = foodViewModelFactory),
                     onLoginClick = onNavigateToLogin,
-                    // --- THE CHANGE: Pass the onLogout lambda down to the screen ---
                     onLogout = onLogout
                 )
             }
             composable(BottomNavItem.Steps.route) {
-                StepTrackerScreen()
+                // --- THE FIX: We explicitly create the ViewModel using its factory. ---
+                StepTrackerScreenContent(viewModel(factory = stepTrackerViewModelFactory))
             }
             composable(BottomNavItem.Workouts.route) {
-                WorkoutScreen()
+                WorkoutScreenContent()
             }
             composable(BottomNavItem.Progress.route) {
-                ProgressScreen()
+                // --- THE FIX: We explicitly create the ViewModel using its factory. ---
+                ProgressScreenContent(viewModel(factory = progressViewModelFactory))
             }
             composable(BottomNavItem.Settings.route) {
-                SettingsScreen()
+                SettingsScreenContent()
             }
         }
     }
