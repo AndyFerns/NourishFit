@@ -63,16 +63,19 @@ class FoodViewModel(private val repository: FoodRepository) : ViewModel() {
         _currentDate.value = newDate
     }
 
-    fun addFood(name: String, calories: Int) {
+    fun addFood(name: String, calories: Int, protein: Int, carbs: Int, fat: Int) {
         // get the curr userID
-        val userID = auth.currentUser?.uid ?: return
+        val userId = auth.currentUser?.uid ?: return
 
         viewModelScope.launch {
             val food = FoodEntity(
                 name = name,
                 calories = calories,
+                protein = protein,
+                carbs = carbs,
+                fat = fat,
                 date = _currentDate.value.format(dateFormatter), // Use the *current* date
-                userID = userID
+                userId = userId
             )
             repository.addFood(food)
         }
@@ -86,15 +89,3 @@ class FoodViewModel(private val repository: FoodRepository) : ViewModel() {
         viewModelScope.launch { repository.deleteFood(food) }
     }
 }
-
-// A Factory is needed to tell the system how to create our ViewModel,
-// since it now requires a Repository in its constructor.
-//class FoodViewModelFactory(private val repository: FoodRepository) : ViewModelProvider.Factory {
-//    override fun <T : ViewModel> create(modelClass: Class<T>): T {
-//        if (modelClass.isAssignableFrom(FoodViewModel::class.java)) {
-//            @Suppress("UNCHECKED_CAST")
-//            return FoodViewModel(repository) as T
-//        }
-//        throw IllegalArgumentException("Unknown ViewModel class")
-//    }
-//}
