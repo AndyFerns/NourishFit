@@ -11,7 +11,9 @@ import androidx.compose.ui.Modifier
 import com.example.nourishfit.navigation.AppNavigation
 import com.example.nourishfit.ui.theme.NourishFitTheme
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
-import com.example.nourishfit.ui.screens.DietTrackerScreen
+import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
+import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
+//import com.example.nourishfit.ui.screens.DietTrackerScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -20,7 +22,10 @@ class MainActivity : ComponentActivity() {
         val repository = (application as NourishFitApp).repository
 
         // creating ViewModelFactory needed by the screens
-        val viewModelFactory = FoodViewModelFactory(repository)
+        val foodViewModelFactory = FoodViewModelFactory(repository)
+        val stepTrackerViewModelFactory = StepTrackerViewModelFactory(repository)
+        val progressViewModelFactory = ProgressViewModelFactory(repository)
+
         enableEdgeToEdge()
         setContent {
             NourishFitTheme {
@@ -29,7 +34,11 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     // Use the single navigation graph
-                    AppNavigation(viewModelFactory = viewModelFactory)
+                    AppNavigation(
+                        foodViewModelFactory = foodViewModelFactory,
+                        stepTrackerViewModelFactory = stepTrackerViewModelFactory,
+                        progressViewModelFactory = progressViewModelFactory
+                    )
                 }
             }
         }
