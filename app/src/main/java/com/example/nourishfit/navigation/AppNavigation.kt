@@ -7,8 +7,9 @@ import androidx.navigation.compose.rememberNavController
 
 import com.example.nourishfit.ui.screens.AppScreen
 import com.example.nourishfit.ui.screens.HomeScreen
-import com.example.nourishfit.ui.screens.LoginScreen
+import com.example.nourishfit.ui.screens.CameraScreen
 import com.example.nourishfit.ui.screens.ChatScreen
+import com.example.nourishfit.ui.screens.LoginScreen
 
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
@@ -20,6 +21,7 @@ sealed class Screen(val route: String) {
     object Login : Screen("login")
     object App : Screen("app") // Represents the main app container with the bottom bar
     object Chat : Screen("chat")
+    object Camera : Screen("camera")
 }
 
 @Composable
@@ -75,6 +77,9 @@ fun AppNavigation(
                 },
                 onNavigateToChat = {
                     navController.navigate(Screen.Chat.route)
+                },
+                onNavigateToCamera = {
+                    navController.navigate(Screen.Camera.route)
                 }
             )
         }
@@ -85,6 +90,18 @@ fun AppNavigation(
                     navController.navigateUp()
                 }
                 // We use the default viewModel() here since ChatViewModel has no factory
+            )
+        }
+
+        composable(Screen.Camera.route) {
+            CameraScreen(
+                onFoodScanned = { foodName ->
+                    // Send the result back to the DietTrackerScreen
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set("scannedFoodName", foodName)
+                    navController.popBackStack()
+                }
             )
         }
     }
