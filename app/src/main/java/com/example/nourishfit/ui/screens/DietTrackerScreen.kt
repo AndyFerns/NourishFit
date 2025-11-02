@@ -41,17 +41,15 @@ import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+// --- CHANGE: Removed onLoginClick and onLogout. AppScreen now handles this. ---
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DietTrackerScreenContent(
-    onLoginClick: () -> Unit = {},
-    onLogout: () -> Unit = {},
     viewModel: FoodViewModel
 ) {
     val foodItems by viewModel.foods.collectAsState()
     val currentDate by viewModel.currentDate.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
-    val isAnonymous = currentUser?.isAnonymous ?: true
 
     LaunchedEffect(key1 = Unit) {
         if (currentUser == null) {
@@ -68,9 +66,11 @@ fun DietTrackerScreenContent(
     var showAddDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
+    // --- CHANGE: Removed Scaffold. The layout is now a Box ---
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
+            // Apply padding for the content AND the floating action buttons
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp)
         ) {
             item {
@@ -175,7 +175,7 @@ fun UserMenu(userName: String, onLogout: () -> Unit) {
     }
 }
 
-// --- THE FIX: This Composable is now updated to show macros ---
+// --- This Composable is now updated to show macros ---
 @Composable
 fun DailySummaryCard(
     calories: Int,
@@ -210,7 +210,7 @@ fun DailySummaryCard(
     }
 }
 
-// --- THE FIX: This Composable is now updated to show macros ---
+// --- This Composable is now updated to show macros ---
 @Composable
 fun FoodListItem(
     foodItem: FoodEntity,
@@ -256,7 +256,6 @@ fun FoodListItem(
     }
 }
 
-// --- THE FIX: This Composable is now updated to ask for macros ---
 @Composable
 fun AddFoodDialog(
     onDismiss: () -> Unit,
@@ -330,8 +329,6 @@ fun AddFoodDialog(
         dismissButton = { TextButton(onDismiss) { Text("Cancel") } }
     )
 }
-
-// --- All other composables are unchanged ---
 
 @Composable
 fun CalorieGoalRing(caloriesConsumed: Int, calorieGoal: Int, strokeWidth: Dp = 12.dp, ringColor: Color = MaterialTheme.colorScheme.primary, backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer) {
