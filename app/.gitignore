@@ -171,3 +171,4 @@ fabric.properties
 /schemas/com.example.nourishfit.data.db.AppDatabase/1.json
 /schemas/com.example.nourishfit.data.db.AppDatabase/2.json
 /schemas/com.example.nourishfit.data.db.AppDatabase/3.json
+/src/main/res/values/secrets.xml
