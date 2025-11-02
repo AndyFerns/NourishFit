@@ -8,6 +8,12 @@ data class FoodEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val name: String,
     val calories: Int,
-    val date: String, // format: yyyy-MM-dd
-    val userID: String
+    // --- Macroes ---
+    val protein: Int,
+    val carbs: Int,
+    val fat: Int,
+    // ---
+    val date: String,
+    val userId: String
 )
+
