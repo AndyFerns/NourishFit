@@ -4,7 +4,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.*
@@ -20,16 +23,38 @@ fun AppScreen(
     foodViewModelFactory: FoodViewModelFactory,
     stepTrackerViewModelFactory: StepTrackerViewModelFactory,
     progressViewModelFactory: ProgressViewModelFactory,
-    // For the Login Scren
+    // For the Login Screen
     onNavigateToLogin: () -> Unit,
     onLogout: () -> Unit,
     // For the Chatbot
     onNavigateToChat: () -> Unit,
-    onNavigateToCamera: () -> Unit
+    onNavigateToCamera: () -> Unit,
+    // This is the non-nullable NavBackStackEntry from the *outer* navigator
+    navBackStackEntry: NavBackStackEntry
 ) {
+    // This is the NavController for the *inner* bottom bar navigation
     val navController = rememberNavController()
-    val navBackStackEntry by navController.currentBackStackEntryAsState()
-    val currentDestination = navBackStackEntry?.destination
+
+    // --- THE FIX: Rename this variable to avoid the name collision ---
+    val innerNavBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentDestination = innerNavBackStackEntry?.destination
+    // --- END OF FIX ---
+
+    var scannedFoodName by remember { mutableStateOf<String?>(null) }
+
+    // --- THIS NOW WORKS: It correctly references the non-nullable 'navBackStackEntry' parameter ---
+    LaunchedEffect(navBackStackEntry, navBackStackEntry.lifecycle) {
+        val savedStateHandle = navBackStackEntry.savedStateHandle
+        savedStateHandle.getStateFlow<String>("scannedFoodName", "")
+            .flowWithLifecycle(navBackStackEntry.lifecycle, Lifecycle.State.RESUMED)
+            .collect { foodName ->
+                if (foodName.isNotBlank()) {
+                    scannedFoodName = foodName
+                    savedStateHandle.set("scannedFoodName", "")
+                }
+            }
+    }
+
 
     val items = listOf(
         BottomNavItem.Diet,
@@ -39,13 +64,11 @@ fun AppScreen(
         BottomNavItem.Settings,
     )
 
-    // --- This is now the ONLY Scaffold in your main app ---
+    // --- This is now the ONLY Scaffold in the main app ---
     Scaffold(
         topBar = {
-            // We find the title of the current screen
-            val title = items.find { it.route == currentDestination?.route }?.title ?: ""
-
-            // We check the auth state *here* to decide what to show in the TopAppBar
+            // --- THE FIX: Use the renamed variable here ---
+            val title = items.find { it.route == currentDestination?.route }?.title ?: "NourishFit"
             val currentUser = FirebaseAuth.getInstance().currentUser
             val isAnonymous = currentUser?.isAnonymous ?: true
 
@@ -73,11 +96,14 @@ fun AppScreen(
         },
         bottomBar = {
             NavigationBar {
+                // --- THE FIX: Use the renamed variable here ---
+                val currentInnerDestination = innerNavBackStackEntry?.destination
                 items.forEach { screen ->
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.title) },
                         label = { Text(screen.title) },
-                        selected = currentDestination?.hierarchy?.any { it.route == screen.route } == true,
+                        // --- THE FIX: Use the renamed variable here ---
+                        selected = currentInnerDestination?.hierarchy?.any { it.route == screen.route } == true,
                         onClick = {
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
@@ -99,7 +125,10 @@ fun AppScreen(
                 DietTrackerScreenContent(
                     viewModel = viewModel(factory = foodViewModelFactory),
                     onNavigateToCamera = onNavigateToCamera,
-                    navController = navController
+                    prefilledFoodName = scannedFoodName,
+                    onDialogDismissed = {
+                        scannedFoodName = null
+                    }
                 )
             }
             composable(BottomNavItem.Steps.route) {
@@ -110,7 +139,7 @@ fun AppScreen(
             }
             composable(BottomNavItem.Progress.route) {
                 ProgressScreenContent(
-                    viewModel(factory = progressViewModelFactory),
+                    viewModel = viewModel(factory = progressViewModelFactory),
                     onNavigateToChat = onNavigateToChat
                 )
             }
