@@ -40,12 +40,18 @@ import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.*
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.flowWithLifecycle
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.navigation.NavController
 
 // --- CHANGE: Removed onLoginClick and onLogout. AppScreen now handles this. ---
 @OptIn(ExperimentalAnimationApi::class)
 @Composable
 fun DietTrackerScreenContent(
-    viewModel: FoodViewModel
+    onNavigateToCamera: () -> Unit,
+    viewModel: FoodViewModel,
+    navController: NavController
 ) {
     val foodItems by viewModel.foods.collectAsState()
     val currentDate by viewModel.currentDate.collectAsState()
@@ -65,6 +71,26 @@ fun DietTrackerScreenContent(
 
     var showAddDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
+    // --- State to hold the scanned food name ---
+    var scannedFoodName by remember { mutableStateOf<String?>(null) }
+
+    // Action to wait for result from camera
+    val lifecycleOwner = LocalLifecycleOwner.current
+    LaunchedEffect(navController, lifecycleOwner.lifecycle) {
+        val savedStateHandle = navController.currentBackStackEntry?.savedStateHandle
+        // Check if a result is available
+        savedStateHandle?.getStateFlow<String>("scannedFoodName", "")
+            ?.flowWithLifecycle(lifecycleOwner.lifecycle, Lifecycle.State.RESUMED)
+            ?.collect { foodName ->
+                if (foodName.isNotBlank()) {
+                    // We got a result!
+                    scannedFoodName = foodName
+                    showAddDialog = true // Open the dialog
+                    // Clear the result so it's not used again
+                    savedStateHandle.set("scannedFoodName", "")
+                }
+            }
+    }
 
     // --- CHANGE: Removed Scaffold. The layout is now a Box ---
     Box(modifier = Modifier.fillMaxSize()) {
@@ -124,7 +150,7 @@ fun DietTrackerScreenContent(
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             FloatingActionButton(
-                onClick = { /* TODO: Launch camera for ML */ },
+                onClick = onNavigateToCamera,
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             ) {
@@ -141,9 +167,11 @@ fun DietTrackerScreenContent(
 
         if (showAddDialog) {
             AddFoodDialog(
+                prefilledFoodName = scannedFoodName,
                 onDismiss = { showAddDialog = false },
                 onAddFood = { name, calories, protein, carbs, fat ->
                     viewModel.addFood(name, calories, protein, carbs, fat)
+                    scannedFoodName = null // Clear the name when food is added
                 }
             )
         }
@@ -258,10 +286,11 @@ fun FoodListItem(
 
 @Composable
 fun AddFoodDialog(
+    prefilledFoodName: String?,
     onDismiss: () -> Unit,
     onAddFood: (name: String, calories: Int, protein: Int, carbs: Int, fat: Int) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
+    var name by remember(prefilledFoodName) { mutableStateOf(prefilledFoodName ?: "") }
     var calories by remember { mutableStateOf("") }
     var protein by remember { mutableStateOf("") }
     var carbs by remember { mutableStateOf("") }
