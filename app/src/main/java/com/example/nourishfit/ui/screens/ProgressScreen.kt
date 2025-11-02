@@ -24,7 +24,10 @@ import java.util.*
 // --- THE CHANGE: Renamed to '...Content' and removed Scaffold ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ProgressScreenContent(viewModel: ProgressViewModel) {
+fun ProgressScreenContent(
+    viewModel: ProgressViewModel,
+    onNavigateToChat: () -> Unit
+) {
     var showChatbot by remember { mutableStateOf(false) }
     val allRuns by viewModel.allRuns.collectAsState()
 
@@ -68,11 +71,11 @@ fun ProgressScreenContent(viewModel: ProgressViewModel) {
         ExtendedFloatingActionButton(
             text = { Text("Ask AI Coach") },
             icon = { Icon(Icons.AutoMirrored.Filled.Chat, "AI Coach") },
-            onClick = { showChatbot = true },
+            onClick = onNavigateToChat,
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         )
 
-        if (showChatbot) { AiChatbotDialog(onDismiss = { showChatbot = false }) }
+        //if (showChatbot) { AiChatbotDialog(onDismiss = { showChatbot = false }) }
     }
 }
 
