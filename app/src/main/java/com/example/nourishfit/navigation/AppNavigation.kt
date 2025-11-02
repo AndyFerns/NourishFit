@@ -1,25 +1,23 @@
 package com.example.nourishfit.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-
 import com.example.nourishfit.ui.screens.AppScreen
-import com.example.nourishfit.ui.screens.HomeScreen
 import com.example.nourishfit.ui.screens.CameraScreen
 import com.example.nourishfit.ui.screens.ChatScreen
+import com.example.nourishfit.ui.screens.HomeScreen
 import com.example.nourishfit.ui.screens.LoginScreen
-
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
 import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
 
-// --- THE CHANGE: This is now a simpler, high-level navigation graph ---
 sealed class Screen(val route: String) {
-    object Home : Screen("home")
     object Login : Screen("login")
-    object App : Screen("app") // Represents the main app container with the bottom bar
+    object Home : Screen("home")
+    object App : Screen("app")
     object Chat : Screen("chat")
     object Camera : Screen("camera")
 }
@@ -38,18 +36,14 @@ fun AppNavigation(
     ) {
         composable(Screen.Home.route) {
             HomeScreen(onStartTrackingClick = {
-                // From Home, we go to the main App container
                 navController.navigate(Screen.App.route) {
-                    // Prevent going back to the Home screen
                     popUpTo(Screen.Home.route) { inclusive = true }
                 }
             })
         }
-
         composable(Screen.Login.route) {
             LoginScreen(
                 onLoginSuccess = {
-                    // After login, go to the main App screen and clear the entire history
                     navController.navigate(Screen.App.route) {
                         popUpTo(navController.graph.startDestinationId) { inclusive = true }
                     }
@@ -59,8 +53,9 @@ fun AppNavigation(
                 }
             )
         }
-        // This is the new main destination for your app's core features.
-        composable(Screen.App.route) {
+
+        // --- THE CHANGE: Pass the navBackStackEntry to AppScreen ---
+        composable(Screen.App.route) { navBackStackEntry ->
             AppScreen(
                 foodViewModelFactory = foodViewModelFactory,
                 stepTrackerViewModelFactory = stepTrackerViewModelFactory,
@@ -80,7 +75,9 @@ fun AppNavigation(
                 },
                 onNavigateToCamera = {
                     navController.navigate(Screen.Camera.route)
-                }
+                },
+                // This gives AppScreen access to its own SavedStateHandle
+                navBackStackEntry = navBackStackEntry
             )
         }
 
