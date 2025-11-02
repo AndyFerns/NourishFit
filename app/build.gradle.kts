@@ -42,6 +42,10 @@ android {
         compose = true
         buildConfig = true
     }
+    // This reads the key from local.properties and makes it available
+    buildTypes.all {
+        buildConfigField("String", "GEMINI_API_KEY", "\"${project.findProperty("GEMINI_API_KEY")}\"")
+    }
 }
 
 room {
@@ -105,6 +109,9 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
 
     implementation("androidx.preference:preference-ktx:1.2.1")
+
+    // --- Gemini AI ---
+    implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
 
     // Add the dependencies for any other desired Firebase products
     // https://firebase.google.com/docs/android/setup#available-libraries
