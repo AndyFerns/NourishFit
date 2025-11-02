@@ -114,6 +114,18 @@ dependencies {
     // --- Gemini AI ---
     implementation("com.google.ai.client.generativeai:generativeai:0.7.0")
 
+    // --- CameraX and ML Kit ---
+    val cameraxVersion = "1.5.0"
+    implementation("androidx.camera:camera-core:$cameraxVersion")
+    implementation("androidx.camera:camera-camera2:$cameraxVersion")
+    implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
+    implementation("androidx.camera:camera-view:$cameraxVersion")
+    implementation("androidx.camera:camera-compose:1.3.3") // The file that was failing
+    implementation("com.google.mlkit:image-labeling:17.0.8")
+
+    // --- import for getFlow' ---
+    implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.0")
+
     // Add the dependencies for any other desired Firebase products
     // https://firebase.google.com/docs/android/setup#available-libraries
 }
