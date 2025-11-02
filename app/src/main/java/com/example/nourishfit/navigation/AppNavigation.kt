@@ -8,6 +8,7 @@ import androidx.navigation.compose.rememberNavController
 import com.example.nourishfit.ui.screens.AppScreen
 import com.example.nourishfit.ui.screens.HomeScreen
 import com.example.nourishfit.ui.screens.LoginScreen
+import com.example.nourishfit.ui.screens.ChatScreen
 
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
@@ -18,6 +19,7 @@ sealed class Screen(val route: String) {
     object Home : Screen("home")
     object Login : Screen("login")
     object App : Screen("app") // Represents the main app container with the bottom bar
+    object Chat : Screen("chat")
 }
 
 @Composable
@@ -70,7 +72,19 @@ fun AppNavigation(
                     navController.navigate(Screen.Home.route) {
                         popUpTo(navController.graph.startDestinationId) { inclusive = true }
                     }
+                },
+                onNavigateToChat = {
+                    navController.navigate(Screen.Chat.route)
                 }
+            )
+        }
+
+        composable(Screen.Chat.route) {
+            ChatScreen(
+                onNavigateUp = {
+                    navController.navigateUp()
+                }
+                // We use the default viewModel() here since ChatViewModel has no factory
             )
         }
     }
