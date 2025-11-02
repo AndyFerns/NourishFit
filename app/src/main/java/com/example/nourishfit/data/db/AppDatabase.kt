@@ -10,7 +10,8 @@ import androidx.room.TypeConverters
         FoodEntity::class,
         RunEntity::class
     ],
-    version = 2
+    version = 3, // Added new macro tracking to food entity
+    autoMigrations = []
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
