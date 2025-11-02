@@ -24,7 +24,8 @@ fun AppScreen(
     onNavigateToLogin: () -> Unit,
     onLogout: () -> Unit,
     // For the Chatbot
-    onNavigateToChat: () -> Unit
+    onNavigateToChat: () -> Unit,
+    onNavigateToCamera: () -> Unit
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -96,9 +97,9 @@ fun AppScreen(
         ) {
             composable(BottomNavItem.Diet.route) {
                 DietTrackerScreenContent(
-                    viewModel = viewModel(factory = foodViewModelFactory)
-                    // Note: onLoginClick and onLogout are no longer needed here,
-                    // because the TopAppBar in AppScreen is now handling them.
+                    viewModel = viewModel(factory = foodViewModelFactory),
+                    onNavigateToCamera = onNavigateToCamera,
+                    navController = navController
                 )
             }
             composable(BottomNavItem.Steps.route) {
