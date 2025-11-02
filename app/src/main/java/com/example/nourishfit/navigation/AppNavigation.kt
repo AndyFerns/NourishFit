@@ -4,10 +4,14 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+
 import com.example.nourishfit.ui.screens.AppScreen
 import com.example.nourishfit.ui.screens.HomeScreen
 import com.example.nourishfit.ui.screens.LoginScreen
+
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
+import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
+import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
 
 // --- THE CHANGE: This is now a simpler, high-level navigation graph ---
 sealed class Screen(val route: String) {
@@ -17,7 +21,11 @@ sealed class Screen(val route: String) {
 }
 
 @Composable
-fun AppNavigation(viewModelFactory: FoodViewModelFactory) {
+fun AppNavigation(
+    foodViewModelFactory: FoodViewModelFactory,
+    stepTrackerViewModelFactory: StepTrackerViewModelFactory,
+    progressViewModelFactory: ProgressViewModelFactory
+) {
     val navController = rememberNavController()
 
     NavHost(
@@ -33,18 +41,27 @@ fun AppNavigation(viewModelFactory: FoodViewModelFactory) {
                 }
             })
         }
+
         composable(Screen.Login.route) {
-            LoginScreen(onLoginSuccess = {
-                // After login, go to the main App screen and clear the entire history
-                navController.navigate(Screen.App.route) {
-                    popUpTo(navController.graph.startDestinationId) { inclusive = true }
+            LoginScreen(
+                onLoginSuccess = {
+                    // After login, go to the main App screen and clear the entire history
+                    navController.navigate(Screen.App.route) {
+                        popUpTo(navController.graph.startDestinationId) { inclusive = true }
+                    }
+                },
+                onNavigateUp = {
+                    navController.navigateUp()
                 }
-            })
+            )
         }
         // This is the new main destination for your app's core features.
         composable(Screen.App.route) {
             AppScreen(
-                foodViewModelFactory = viewModelFactory,
+                foodViewModelFactory = foodViewModelFactory,
+                stepTrackerViewModelFactory = stepTrackerViewModelFactory,
+                progressViewModelFactory = progressViewModelFactory,
+
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route)
                 },
