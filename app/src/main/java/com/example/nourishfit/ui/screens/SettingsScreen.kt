@@ -4,10 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.HelpOutline
-import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.automirrored.filled.*
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -15,33 +13,26 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 
-@OptIn(ExperimentalMaterial3Api::class)
+// --- Renamed to '...Content' and removed Scaffold ---
 @Composable
-fun SettingsScreen() {
-    Scaffold(
-        topBar = { TopAppBar(title = { Text("Settings") }) }
-    ) { innerPadding ->
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding),
-            contentPadding = PaddingValues(vertical = 16.dp)
-        ) {
-            item { SectionHeader("Account") }
-            item { SettingsItem(title = "Profile", icon = Icons.Default.Person) }
+fun SettingsScreenContent() {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(vertical = 16.dp)
+    ) {
+        item { SectionHeader("Account") }
+        item { SettingsItem("Profile", Icons.Default.Person) }
 
-            item { SectionHeader("Notifications (AI Alerts)") }
-            item { NotificationToggle(title = "Meal Reminders") }
-            item { NotificationToggle(title = "Calorie Goal Alerts") }
-            item { NotificationToggle(title = "Weekly Progress Summary") }
+        item { SectionHeader("Notifications (AI Alerts)") }
+        item { NotificationToggle("Meal Reminders") }
+        item { NotificationToggle("Weekly Progress Summary") }
 
-            item { SectionHeader("About") }
-            item { SettingsItem(title = "Help & Support", icon = Icons.AutoMirrored.Filled.HelpOutline) }
-            item { SettingsItem(title = "Terms of Service", icon = Icons.AutoMirrored.Filled.ReceiptLong) }
-        }
+        item { SectionHeader("About") }
+        item { SettingsItem("Help & Support", Icons.AutoMirrored.Filled.HelpOutline) }
     }
 }
 
+// ... (The rest of your file is unchanged)
 @Composable
 fun SectionHeader(title: String) {
     Text(
@@ -79,8 +70,8 @@ fun NotificationToggle(title: String) {
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.Notifications, contentDescription = title)
-            Spacer(modifier = Modifier.width(16.dp))
+            Icon(Icons.Default.Notifications, title)
+            Spacer(Modifier.width(16.dp))
             Text(title, style = MaterialTheme.typography.bodyLarge)
         }
         Switch(checked = isChecked, onCheckedChange = { isChecked = it })
