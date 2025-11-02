@@ -20,8 +20,11 @@ fun AppScreen(
     foodViewModelFactory: FoodViewModelFactory,
     stepTrackerViewModelFactory: StepTrackerViewModelFactory,
     progressViewModelFactory: ProgressViewModelFactory,
+    // For the Login Scren
     onNavigateToLogin: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    // For the Chatbot
+    onNavigateToChat: () -> Unit
 ) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -105,7 +108,10 @@ fun AppScreen(
                 WorkoutScreenContent()
             }
             composable(BottomNavItem.Progress.route) {
-                ProgressScreenContent(viewModel(factory = progressViewModelFactory))
+                ProgressScreenContent(
+                    viewModel(factory = progressViewModelFactory),
+                    onNavigateToChat = onNavigateToChat
+                )
             }
             composable(BottomNavItem.Settings.route) {
                 SettingsScreenContent()
