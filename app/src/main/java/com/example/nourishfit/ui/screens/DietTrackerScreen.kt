@@ -35,21 +35,20 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.nourishfit.data.db.FoodEntity
 import com.example.nourishfit.ui.viewmodel.FoodViewModel
-import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 import java.time.LocalDate
 import java.time.format.TextStyle
 import java.util.*
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalAnimationApi::class)
+// --- THE CHANGE: Renamed to 'DietTrackerScreenContent' ---
+// --- Removed 'onNavigateUp' parameter, as the TopAppBar is now in AppScreen ---
+@OptIn(ExperimentalAnimationApi::class)
 @Composable
-fun DietTrackerScreen(
-    onNavigateUp: (() -> Unit)? = null,
+fun DietTrackerScreenContent(
     onLoginClick: () -> Unit = {},
     onLogout: () -> Unit = {},
-    viewModelFactory: FoodViewModelFactory
+    viewModel: FoodViewModel // ViewModel is now passed in directly
 ) {
-    val viewModel: FoodViewModel = viewModel(factory = viewModelFactory)
     val foodItems by viewModel.foods.collectAsState()
     val currentDate by viewModel.currentDate.collectAsState()
     val currentUser = FirebaseAuth.getInstance().currentUser
@@ -65,67 +64,13 @@ fun DietTrackerScreen(
     var showAddDialog by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = {
-            TopAppBar(
-                title = { Text("Diet Tracker") },
-                navigationIcon = {
-                    if (onNavigateUp != null) {
-                        IconButton(onClick = onNavigateUp) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Go back")
-                        }
-                    }
-                },
-                actions = {
-                    if (isAnonymous) {
-                        Button(onClick = onLoginClick) {
-                            Text("Login to Sync")
-                        }
-                    } else {
-                        UserMenu(
-                            userName = currentUser?.email?.substringBefore('@') ?: "User",
-                            onLogout = {
-                                FirebaseAuth.getInstance().signOut()
-                                onLogout()
-                            }
-                        )
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceContainerLowest
-                )
-            )
-        },
-        floatingActionButton = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                FloatingActionButton(
-                    onClick = { /* TODO: Launch camera for ML */ },
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer
-                ) {
-                    Icon(Icons.Filled.PhotoCamera, contentDescription = "Scan Food (ML)")
-                }
-
-                FloatingActionButton(
-                    onClick = { showAddDialog = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(Icons.Filled.Add, contentDescription = "Add Food")
-                }
-            }
-        }
-    ) { innerPadding ->
+    // --- THE CHANGE: Removed Scaffold. The layout is now a Box ---
+    // This Box will fill the content area provided by AppScreen's Scaffold
+    Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-                .padding(horizontal = 16.dp),
-            contentPadding = PaddingValues(bottom = 80.dp)
+            modifier = Modifier.fillMaxSize(),
+            // Apply padding for the content AND the floating action buttons
+            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 100.dp)
         ) {
             item {
                 DaySwitcher(currentDate) { newDate -> viewModel.changeDate(newDate) }
@@ -147,18 +92,41 @@ fun DietTrackerScreen(
                     items(items, key = { it.id }) { foodItem ->
                         AnimatedVisibility(
                             visible = true,
-                            enter = fadeIn(tween(300)) + slideInVertically { it / 2 },
-                            exit = fadeOut(tween(300))
+                            enter = fadeIn(animationSpec = tween(300)) + slideInVertically(initialOffsetY = { it / 2 }),
+                            exit = fadeOut(animationSpec = tween(300))
                         ) {
                             FoodListItem(
                                 foodItem = foodItem,
                                 onDelete = { viewModel.deleteFood(it) },
-                                onEdit = { /* TODO */ }
+                                onEdit = { /* TODO: implement edit */ }
                             )
                         }
                     }
                     item { Spacer(Modifier.height(16.dp)) }
                 }
+            }
+        }
+
+        // --- THE CHANGE: FABs are now aligned to the BottomEnd of the Box ---
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            FloatingActionButton(
+                onClick = { /* TODO: Launch camera for ML */ },
+                containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer
+            ) {
+                Icon(Icons.Filled.PhotoCamera, contentDescription = "Scan Food (ML)")
+            }
+            FloatingActionButton(
+                onClick = { showAddDialog = true },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ) {
+                Icon(Icons.Filled.Add, contentDescription = "Add Food")
             }
         }
 
@@ -195,37 +163,6 @@ fun UserMenu(userName: String, onLogout: () -> Unit) {
         }
     }
 }
-
-@Composable
-fun AddFoodDialog(onDismiss: () -> Unit, onAddFood: (name: String, calories: Int) -> Unit) {
-    var name by remember { mutableStateOf("") }
-    var calories by remember { mutableStateOf("") }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text("Add New Food") },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text("Food Name") },
-                    leadingIcon = { Icon(Icons.Outlined.Fastfood, null) }
-                )
-                OutlinedTextField(
-                    value = calories,
-                    onValueChange = { calories = it },
-                    label = { Text("Calories (kcal)") },
-                    leadingIcon = { Icon(Icons.Outlined.LocalFireDepartment, null) },
-                    // --- THIS IS THE FIX ---
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
-                )
-            }
-        },
-        confirmButton = { Button({ val cal = calories.toIntOrNull(); if (name.isNotBlank() && cal != null) { onAddFood(name, cal) }; onDismiss() }) { Text("Add Food") } },
-        dismissButton = { TextButton(onDismiss) { Text("Cancel") } }
-    )
-}
-
 @Composable
 fun CalorieGoalRing(caloriesConsumed: Int, calorieGoal: Int, strokeWidth: Dp = 12.dp, ringColor: Color = MaterialTheme.colorScheme.primary, backgroundColor: Color = MaterialTheme.colorScheme.surfaceContainer) {
     val progress = (caloriesConsumed.toFloat() / calorieGoal.toFloat()).coerceIn(0f, 1f)
@@ -276,6 +213,17 @@ fun EmptyState() {
     }
 }
 @Composable
+fun AddFoodDialog(onDismiss: () -> Unit, onAddFood: (name: String, calories: Int) -> Unit) {
+    var name by remember { mutableStateOf("") }
+    var calories by remember { mutableStateOf("") }
+    AlertDialog(onDismiss, title = { Text("Add New Food") }, text = {
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            OutlinedTextField(name, { name = it }, label = { Text("Food Name") }, leadingIcon = { Icon(Icons.Outlined.Fastfood, null) })
+            OutlinedTextField(calories, { calories = it }, label = { Text("Calories (kcal)") }, leadingIcon = { Icon(Icons.Outlined.LocalFireDepartment, null) }, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+        }
+    }, confirmButton = { Button({ val cal = calories.toIntOrNull(); if (name.isNotBlank() && cal != null) { onAddFood(name, cal) }; onDismiss() }) { Text("Add Food") } }, dismissButton = { TextButton(onDismiss) { Text("Cancel") } })
+}
+@Composable
 fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
     OutlinedTextField(query, onQueryChange, label = { Text("Search foods...") }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), leadingIcon = { Icon(Icons.Outlined.Search, "Search") }, shape = RoundedCornerShape(50))
 }
@@ -288,12 +236,17 @@ fun DaySwitcher(currentDate: LocalDate, onDateChange: (LocalDate) -> Unit) {
     val dayOfWeek = currentDate.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.getDefault())
     val formattedDate = "$dayOfWeek, $month $day$suffix"
     val isToday = currentDate == LocalDate.now()
+
     Row(Modifier.fillMaxWidth(), Arrangement.SpaceBetween, Alignment.CenterVertically) {
-        IconButton({ onDateChange(currentDate.minusDays(1)) }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous") }
+        IconButton({ onDateChange(currentDate.minusDays(1)) }) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Previous")
+        }
         TextButton({ DatePickerDialog(context, { _, y, m, d -> onDateChange(LocalDate.of(y, m + 1, d)) }, currentDate.year, currentDate.monthValue - 1, currentDate.dayOfMonth).show() }) {
             Text(if (isToday) "Today" else formattedDate, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, fontSize = 18.sp)
         }
-        IconButton({ onDateChange(currentDate.plusDays(1)) }) { Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next") }
+        IconButton({ onDateChange(currentDate.plusDays(1)) }) {
+            Icon(Icons.AutoMirrored.Filled.ArrowForward, "Next")
+        }
     }
 }
 enum class MealType(val title: String, val icon: ImageVector) { BREAKFAST("Breakfast", Icons.Outlined.BreakfastDining), LUNCH("Lunch", Icons.Outlined.LunchDining), DINNER("Dinner", Icons.Outlined.DinnerDining), SNACK("Snacks", Icons.Outlined.Fastfood), UNKNOWN("Other", Icons.Outlined.Restaurant) }
