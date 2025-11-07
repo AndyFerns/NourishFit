@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface FoodDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertFood(food: FoodEntity)
+    suspend fun insertFood(food: FoodEntity): Long
 
     @Update
     suspend fun updateFood(food: FoodEntity)
