@@ -123,6 +123,9 @@ dependencies {
     implementation("androidx.camera:camera-compose:1.3.3") // The file that was failing
     implementation("com.google.mlkit:image-labeling:17.0.8")
 
+    // Required for WorkManager Alert system
+    implementation("androidx.work:work-runtime-ktx:2.9.0")
+
     // --- import for getFlow' ---
     implementation("androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.0")
 
