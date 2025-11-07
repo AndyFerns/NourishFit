@@ -1,5 +1,7 @@
 package com.example.nourishfit.ui.screens
 
+import android.Manifest
+import android.os.Build
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,10 +12,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+// --- FIX: Add this import ---
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import com.example.nourishfit.workers.NotificationWorker
+import com.google.accompanist.permissions.ExperimentalPermissionsApi
+import com.google.accompanist.permissions.isGranted
+import com.google.accompanist.permissions.rememberPermissionState
+import java.util.concurrent.TimeUnit
 
-// --- Renamed to '...Content' and removed Scaffold ---
 @Composable
 fun SettingsScreenContent() {
     LazyColumn(
@@ -24,15 +35,73 @@ fun SettingsScreenContent() {
         item { SettingsItem("Profile", Icons.Default.Person) }
 
         item { SectionHeader("Notifications (AI Alerts)") }
-        item { NotificationToggle("Meal Reminders") }
-        item { NotificationToggle("Weekly Progress Summary") }
+        item { DailyReminderToggle() }
+        item { NotificationToggle(title = "Weekly Progress Summary") } // This is still a placeholder
 
         item { SectionHeader("About") }
         item { SettingsItem("Help & Support", Icons.AutoMirrored.Filled.HelpOutline) }
     }
 }
 
-// ... (The rest of your file is unchanged)
+@OptIn(ExperimentalPermissionsApi::class)
+@Composable
+fun DailyReminderToggle() {
+    // --- FIX: 'LocalContext' is now resolved ---
+    val context = LocalContext.current
+    val workManager = WorkManager.getInstance(context)
+    val workName = "DailyFoodLogReminder"
+
+    var isChecked by remember { mutableStateOf(false) }
+
+    val postNotificationPermission =
+        // --- FIX: 'Build' is now resolved ---
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // --- FIX: 'Manifest' is now resolved ---
+            rememberPermissionState(permission = Manifest.permission.POST_NOTIFICATIONS)
+        } else {
+            null
+        }
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { isChecked = !isChecked }
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.Notifications, contentDescription = "Meal Reminders")
+            Spacer(modifier = Modifier.width(16.dp))
+            Text("Daily Meal Reminders", style = MaterialTheme.typography.bodyLarge)
+        }
+        Switch(
+            checked = isChecked,
+            onCheckedChange = { checked ->
+                isChecked = checked
+                if (checked) {
+                    if (postNotificationPermission == null || postNotificationPermission.status.isGranted) {
+                        val dailyCheck = PeriodicWorkRequestBuilder<NotificationWorker>(
+                            1, TimeUnit.DAYS
+                        ).build()
+
+                        workManager.enqueueUniquePeriodicWork(
+                            workName,
+                            ExistingPeriodicWorkPolicy.KEEP,
+                            dailyCheck
+                        )
+                    } else {
+                        postNotificationPermission.launchPermissionRequest()
+                        isChecked = false
+                    }
+                } else {
+                    workManager.cancelUniqueWork(workName)
+                }
+            }
+        )
+    }
+}
+
 @Composable
 fun SectionHeader(title: String) {
     Text(
@@ -61,7 +130,7 @@ fun SettingsItem(title: String, icon: androidx.compose.ui.graphics.vector.ImageV
 
 @Composable
 fun NotificationToggle(title: String) {
-    var isChecked by remember { mutableStateOf(true) }
+    var isChecked by remember { mutableStateOf(false) }
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -71,7 +140,7 @@ fun NotificationToggle(title: String) {
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Icon(Icons.Default.Notifications, title)
-            Spacer(Modifier.width(16.dp))
+            Spacer(modifier = Modifier.width(16.dp))
             Text(title, style = MaterialTheme.typography.bodyLarge)
         }
         Switch(checked = isChecked, onCheckedChange = { isChecked = it })
