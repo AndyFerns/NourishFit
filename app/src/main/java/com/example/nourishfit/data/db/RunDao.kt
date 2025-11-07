@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RunDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertRun(run: RunEntity)
+    suspend fun insertRun(run: RunEntity): Long
 
     // Gets all runs for a specific user, ordered from newest to oldest
     @Query("SELECT * FROM runs WHERE userId = :userId ORDER BY timestamp DESC")
