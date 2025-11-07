@@ -70,8 +70,13 @@ fun DietTrackerScreenContent(
     val totalCarbs = foodItems.sumOf { it.carbs }
     val totalFat = foodItems.sumOf { it.fat }
 
-    // --- THE CHANGE: Dialog visibility is now controlled by the prefilled name ---
-    val showAddDialog = prefilledFoodName != null
+//    // --- THE CHANGE: Dialog visibility is now controlled by the prefilled name ---
+//    val showAddDialog = prefilledFoodName != null
+
+    // We now have two separate states to control the dialogs.
+    var showManualAddDialog by remember { mutableStateOf(false) }
+    val showScannedFoodDialog = prefilledFoodName != null
+
     var searchQuery by remember { mutableStateOf("") }
 
     // Removed launch effect waiting for the result
@@ -141,7 +146,7 @@ fun DietTrackerScreenContent(
                 Icon(Icons.Filled.PhotoCamera, contentDescription = "Scan Food (ML)")
             }
             FloatingActionButton(
-                onClick = {  },
+                onClick = { showManualAddDialog = true },
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ) {
@@ -149,14 +154,27 @@ fun DietTrackerScreenContent(
             }
         }
 
-        // --- THE CHANGE: This dialog is now shown based on the prefilled name ---
-        if (showAddDialog) {
+        // FIX
+        // Dialog 1: For the camera scan result
+        if (showScannedFoodDialog) {
             AddFoodDialog(
                 prefilledFoodName = prefilledFoodName,
-                onDismiss = onDialogDismissed, // Use the new lambda
+                onDismiss = onDialogDismissed,
                 onAddFood = { name, calories, protein, carbs, fat ->
                     viewModel.addFood(name, calories, protein, carbs, fat)
-                    onDialogDismissed() // Also call this after adding food
+                    onDialogDismissed()
+                }
+            )
+        }
+
+        // Dialog 2: For the manual "+" button click
+        if (showManualAddDialog) {
+            AddFoodDialog(
+                prefilledFoodName = null, // No prefilled name
+                onDismiss = { showManualAddDialog = false }, // It controls its own state
+                onAddFood = { name, calories, protein, carbs, fat ->
+                    viewModel.addFood(name, calories, protein, carbs, fat)
+                    showManualAddDialog = false // Close on add
                 }
             )
         }
