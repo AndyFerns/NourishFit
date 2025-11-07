@@ -4,12 +4,17 @@
 
     <!-- Create a temp account for unregistered users -->
     <uses-permission android:name="android.permission.INTERNET" />
+
     <!-- Location Permissions -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+
     <!-- Camera Permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-feature android:name="android.hardware.camera.any" android:required="true" />
+    <uses-feature android:name="android.hardware.camera.any" android:required="false" />
+
+    <!-- Notification Permissions -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
     <application
         android:name=".NourishFitApp"
