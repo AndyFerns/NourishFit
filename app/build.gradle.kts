@@ -120,7 +120,9 @@ dependencies {
     implementation("androidx.camera:camera-camera2:$cameraxVersion")
     implementation("androidx.camera:camera-lifecycle:$cameraxVersion")
     implementation("androidx.camera:camera-view:$cameraxVersion")
-    implementation("androidx.camera:camera-compose:1.3.3") // The file that was failing
+    implementation("androidx.camera:camera-compose:1.3.3")
+
+    // ML Kit
     implementation("com.google.mlkit:image-labeling:17.0.8")
 
     // Required for WorkManager Alert system
@@ -131,4 +133,7 @@ dependencies {
 
     // Add the dependencies for any other desired Firebase products
     // https://firebase.google.com/docs/android/setup#available-libraries
+
+    // Firebase Cloud Database
+    implementation("com.google.firebase:firebase-firestore-ktx")
 }
