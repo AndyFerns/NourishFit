@@ -18,5 +18,7 @@ class FoodRepository(private val foodDao: FoodDao, private val runDao: RunDao) {
     // TODO: refactor into RunRepository.kt
     suspend fun addRun(run: RunEntity) = runDao.insertRun(run)
     fun getAllRunsByUser(userId: String): Flow<List<RunEntity>> = runDao.getAllRunsByUser(userId)
+
+    suspend fun getFoodCountForDate(date: String, userId: String) = foodDao.getFoodCountForDate(date, userId)
 }
 
