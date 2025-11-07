@@ -1,11 +1,15 @@
 package com.example.nourishfit.ui.screens
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.outlined.TrendingUp
 import androidx.compose.material.icons.outlined.BarChart
@@ -14,6 +18,13 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.example.nourishfit.data.db.RunEntity
@@ -21,7 +32,6 @@ import com.example.nourishfit.ui.viewmodel.ProgressViewModel
 import java.text.SimpleDateFormat
 import java.util.*
 
-// --- THE CHANGE: Renamed to '...Content' and removed Scaffold ---
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProgressScreenContent(
@@ -31,7 +41,6 @@ fun ProgressScreenContent(
     var showChatbot by remember { mutableStateOf(false) }
     val allRuns by viewModel.allRuns.collectAsState()
 
-    // --- THE CHANGE: Removed Scaffold, using Box for layout ---
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -42,10 +51,22 @@ fun ProgressScreenContent(
                 Text("Analytics", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             }
             item {
-                ProgressChartCard("Weight Trend", Icons.AutoMirrored.Outlined.TrendingUp, "Chart showing your weight over time.")
+                // --- THE CHANGE: Swapped text for a placeholder line chart ---
+                ProgressChartCard(
+                    title = "Weight Trend",
+                    icon = Icons.AutoMirrored.Outlined.TrendingUp
+                ) {
+                    PlaceholderLineChart()
+                }
             }
             item {
-                ProgressChartCard("Calorie Intake", Icons.Outlined.BarChart, "Chart showing daily calorie intake.")
+                // --- THE CHANGE: Swapped text for a placeholder bar chart ---
+                ProgressChartCard(
+                    title = "Calorie Intake",
+                    icon = Icons.Outlined.BarChart
+                ) {
+                    PlaceholderBarChart()
+                }
             }
 
             item {
@@ -67,7 +88,6 @@ fun ProgressScreenContent(
             }
         }
 
-        // --- THE CHANGE: FAB is now aligned within the Box ---
         ExtendedFloatingActionButton(
             text = { Text("Ask AI Coach") },
             icon = { Icon(Icons.AutoMirrored.Filled.Chat, "AI Coach") },
@@ -75,7 +95,8 @@ fun ProgressScreenContent(
             modifier = Modifier.align(Alignment.BottomEnd).padding(16.dp)
         )
 
-        //if (showChatbot) { AiChatbotDialog(onDismiss = { showChatbot = false }) }
+        // The dialog is now correctly handled by the navigation to ChatScreen
+        // if (showChatbot) { AiChatbotDialog(onDismiss = { showChatbot = false }) }
     }
 }
 
@@ -97,7 +118,6 @@ fun RunHistoryCard(run: RunEntity) {
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // We can re-use the StatDisplay from StepTrackerScreen
                 StatDisplay(label = "Distance", value = formatDistance(run.distanceMeters))
                 StatDisplay(label = "Time", value = formatTime(run.timeInMillis))
                 StatDisplay(label = "Pace", value = formatPace(run.distanceMeters, run.timeInMillis))
@@ -105,7 +125,6 @@ fun RunHistoryCard(run: RunEntity) {
         }
     }
 }
-// ... (The rest of your file is unchanged)
 @Composable
 fun AiChatbotDialog(onDismiss: () -> Unit) {
     AlertDialog(
@@ -121,8 +140,14 @@ fun AiChatbotDialog(onDismiss: () -> Unit) {
         confirmButton = { Button(onClick = onDismiss) { Text("Close") } }
     )
 }
+
+// --- THE CHANGE: This Composable now accepts a 'content' lambda ---
 @Composable
-fun ProgressChartCard(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, description: String) {
+fun ProgressChartCard(
+    title: String,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    content: @Composable () -> Unit // This will be our chart
+) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         elevation = CardDefaults.cardElevation(2.dp)
@@ -134,16 +159,104 @@ fun ProgressChartCard(title: String, icon: androidx.compose.ui.graphics.vector.I
                 Text(title, style = MaterialTheme.typography.headlineSmall)
             }
             Spacer(modifier = Modifier.height(16.dp))
+            // --- THE CHANGE: We render the chart content here ---
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(150.dp)
                     .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceContainer),
+                    .background(MaterialTheme.colorScheme.surfaceContainer)
+                    .padding(16.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(description, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                content()
             }
         }
     }
 }
+
+// --- NEW: A simple, animated placeholder line chart ---
+@Composable
+fun PlaceholderLineChart() {
+    val points = remember { listOf(0.4f, 0.3f, 0.5f, 0.4f, 0.6f, 0.8f, 0.7f) }
+    val primaryColor = MaterialTheme.colorScheme.primary
+    val animationProgress = remember { Animatable(0f) }
+
+    LaunchedEffect(Unit) {
+        animationProgress.animateTo(1f, animationSpec = tween(1000))
+    }
+
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val path = Path()
+        val pathGradient = Path()
+
+        val xStep = size.width / (points.size - 1)
+        val yMax = size.height
+
+        points.forEachIndexed { index, point ->
+            val x = index * xStep
+            val y = yMax - (point * yMax * animationProgress.value)
+
+            if (index == 0) {
+                path.moveTo(x, y)
+                pathGradient.moveTo(x, y)
+            } else {
+                path.lineTo(x, y)
+                pathGradient.lineTo(x, y)
+            }
+
+            drawCircle(color = primaryColor, radius = 8f, center = Offset(x, y))
+        }
+
+        pathGradient.lineTo(size.width, size.height)
+        pathGradient.lineTo(0f, size.height)
+        pathGradient.close()
+
+        drawPath(
+            path = path,
+            color = primaryColor,
+            style = Stroke(width = 5f, cap = StrokeCap.Round)
+        )
+
+        drawPath(
+            path = pathGradient,
+            brush = Brush.verticalGradient(
+                colors = listOf(primaryColor.copy(alpha = 0.3f), Color.Transparent),
+                startY = 0f,
+                endY = size.height
+            )
+        )
+    }
+}
+
+// --- NEW: A simple, animated placeholder bar chart ---
+@Composable
+fun PlaceholderBarChart() {
+    val data = remember { listOf(0.8f, 0.5f, 0.7f, 0.4f, 0.6f, 0.9f, 0.5f) }
+    val barColor = MaterialTheme.colorScheme.secondary
+
+    Row(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 8.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.Bottom
+    ) {
+        data.forEach { value ->
+            val animationProgress = remember { Animatable(0f) }
+            LaunchedEffect(Unit) {
+                animationProgress.animateTo(value, animationSpec = tween(1000))
+            }
+
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight(animationProgress.value)
+                    .padding(horizontal = 4.dp)
+                    .clip(RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp))
+                    .background(barColor)
+            )
+        }
+    }
+}
+
