@@ -17,4 +17,8 @@ interface FoodDao {
 
     @Query("SELECT * FROM foods WHERE date = :date AND userID = :userID ORDER BY id DESC")
     fun getFoodsForDate(date: String, userID: String): Flow<List<FoodEntity>>
+
+    // This will quickly check if any food exists for a user on a specific date.
+    @Query("SELECT COUNT(*) FROM foods WHERE date = :date AND userId = :userId")
+    suspend fun getFoodCountForDate(date: String, userId: String): Int
 }
