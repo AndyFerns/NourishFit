@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.nourishfit.data.db.RunEntity
 import com.example.nourishfit.repository.FoodRepository
+import com.example.nourishfit.repository.ActivityRepository
 import com.google.android.gms.location.*
 import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.Job
@@ -26,7 +27,7 @@ data class TrackingState(
 )
 
 // --- THE CHANGE: The ViewModel now requires the repository to save runs ---
-class StepTrackerViewModel(private val repository: FoodRepository) : ViewModel() {
+class StepTrackerViewModel(private val repository: ActivityRepository) : ViewModel() {
 
     private val auth = FirebaseAuth.getInstance()
     private val _trackingState = MutableStateFlow(TrackingState())
