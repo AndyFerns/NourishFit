@@ -168,8 +168,8 @@ fun OsmMapView(route: List<GeoPoint>, isTracking: Boolean) {
             if (route.size > 1) {
                 val polyline = Polyline().apply {
                     setPoints(route)
-                    paint.color = 0xFF007BFF.toInt() // A nicer blue color
-                    paint.strokeWidth = 15f
+                    outlinePaint.color = 0xFF007BFF.toInt()
+                    outlinePaint.strokeWidth = 15f
                 }
                 mapView.overlays.add(polyline)
             }
