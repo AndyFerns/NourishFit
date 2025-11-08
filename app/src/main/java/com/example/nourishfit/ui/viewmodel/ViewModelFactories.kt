@@ -2,10 +2,12 @@ package com.example.nourishfit.ui.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.example.nourishfit.repository.ActivityRepository
 import com.example.nourishfit.repository.FoodRepository
 
 // consolidated all  factories into one file for better organization.
 
+// Factory for DietTrackerScreen
 class FoodViewModelFactory(private val repository: FoodRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(FoodViewModel::class.java)) {
@@ -16,7 +18,8 @@ class FoodViewModelFactory(private val repository: FoodRepository) : ViewModelPr
     }
 }
 
-class StepTrackerViewModelFactory(private val repository: FoodRepository) : ViewModelProvider.Factory {
+// Factory for Step Tracker Screen
+class StepTrackerViewModelFactory(private val repository: ActivityRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(StepTrackerViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
@@ -26,7 +29,8 @@ class StepTrackerViewModelFactory(private val repository: FoodRepository) : View
     }
 }
 
-class ProgressViewModelFactory(private val repository: FoodRepository) : ViewModelProvider.Factory {
+// Progress Screen Factory
+class ProgressViewModelFactory(private val repository: ActivityRepository) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(ProgressViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
