@@ -8,13 +8,16 @@ import androidx.room.TypeConverters
 @Database(
     entities = [
         FoodEntity::class,
-        RunEntity::class
+        RunEntity::class,
+        WeightEntity::class
     ],
-    version = 3, // Added new macro tracking to food entity
+    version = 4, // Added new macro tracking to food entity
     autoMigrations = []
 )
 @TypeConverters(Converters::class)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun foodDao(): FoodDao
     abstract fun runDao(): RunDao
+
+    abstract fun weightDao(): WeightDao
 }
