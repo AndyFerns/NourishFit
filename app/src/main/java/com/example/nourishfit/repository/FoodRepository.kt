@@ -3,15 +3,15 @@ package com.example.nourishfit.repository
 import android.util.Log
 import com.example.nourishfit.data.db.FoodDao
 import com.example.nourishfit.data.db.FoodEntity
-import com.example.nourishfit.data.db.RunDao
-import com.example.nourishfit.data.db.RunEntity
+//import com.example.nourishfit.data.db.RunDao
+//import com.example.nourishfit.data.db.RunEntity
 import kotlinx.coroutines.flow.Flow
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.tasks.await
 
 // --- FIX 1: The constructor now also accepts RunDao ---
-class FoodRepository(private val foodDao: FoodDao, private val runDao: RunDao) {
+class FoodRepository(private val foodDao: FoodDao) {
     // --- Get an instance of Cloud Firestore ---
     private val firestore = Firebase.firestore
 
@@ -62,31 +62,32 @@ class FoodRepository(private val foodDao: FoodDao, private val runDao: RunDao) {
 
     suspend fun getFoodCountForDate(date: String, userId: String) = foodDao.getFoodCountForDate(date, userId)
 
+    // Removed run-related functions from FoodRepository
     // --- Add the missing functions for Runs --- //
     // TODO: refactor into RunRepository.kt
 
     // --- Run functions ---
-    suspend fun addRun(run: RunEntity) {
-        try {
-            // 1. Insert into local Room database
-            val newRoomId = runDao.insertRun(run)
+//    suspend fun addRun(run: RunEntity) {
+//        try {
+//            // 1. Insert into local Room database
+//            val newRoomId = runDao.insertRun(run)
+//
+//            // 2. Create object with real ID
+//            val runWithId = run.copy(id = newRoomId.toInt())
+//
+//            // 3. Save to Firestore
+//            firestore.collection("users")
+//                .document(runWithId.userId)
+//                .collection("runs")
+//                .document(newRoomId.toString()) // Use Room's ID as the Firestore ID
+//                .set(runWithId)
+//                .await()
+//            Log.d("FirestoreSync", "Run successfully synced.")
+//        } catch (e: Exception) {
+//            Log.e("FirestoreSync", "Error syncing run", e)
+//        }
+//    }
 
-            // 2. Create object with real ID
-            val runWithId = run.copy(id = newRoomId.toInt())
-
-            // 3. Save to Firestore
-            firestore.collection("users")
-                .document(runWithId.userId)
-                .collection("runs")
-                .document(newRoomId.toString()) // Use Room's ID as the Firestore ID
-                .set(runWithId)
-                .await()
-            Log.d("FirestoreSync", "Run successfully synced.")
-        } catch (e: Exception) {
-            Log.e("FirestoreSync", "Error syncing run", e)
-        }
-    }
-
-    fun getAllRunsByUser(userId: String): Flow<List<RunEntity>> = runDao.getAllRunsByUser(userId)
+//    fun getAllRunsByUser(userId: String): Flow<List<RunEntity>> = runDao.getAllRunsByUser(userId)
 }
 
