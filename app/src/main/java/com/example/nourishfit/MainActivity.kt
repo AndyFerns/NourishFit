@@ -18,13 +18,16 @@ import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
         // getter for repo from single app interface
-        val repository = (application as NourishFitApp).repository
+        val foodRepository = (application as NourishFitApp).foodRepository
+        val activityRepository = (application as NourishFitApp).activityRepository
 
         // creating ViewModelFactory needed by the screens
-        val foodViewModelFactory = FoodViewModelFactory(repository)
-        val stepTrackerViewModelFactory = StepTrackerViewModelFactory(repository)
-        val progressViewModelFactory = ProgressViewModelFactory(repository)
+        val foodViewModelFactory = FoodViewModelFactory(foodRepository)
+
+        val stepTrackerViewModelFactory = StepTrackerViewModelFactory(activityRepository)
+        val progressViewModelFactory = ProgressViewModelFactory(activityRepository)
 
         enableEdgeToEdge()
         setContent {
