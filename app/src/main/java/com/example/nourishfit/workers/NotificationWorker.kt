@@ -20,7 +20,7 @@ class NotificationWorker(
 
     override suspend fun doWork(): Result {
         // Get the repository from the Application class (simple way without Dagger/Hilt)
-        val repository = (applicationContext as NourishFitApp).repository
+        val repository = (applicationContext as NourishFitApp).foodRepository
         val auth = FirebaseAuth.getInstance()
         val userId = auth.currentUser?.uid
 
