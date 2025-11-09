@@ -13,7 +13,7 @@ import com.example.nourishfit.ui.theme.NourishFitTheme
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
 import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
-//import com.example.nourishfit.ui.screens.DietTrackerScreen
+import com.example.nourishfit.ui.viewmodel.ProfileViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,6 +28,7 @@ class MainActivity : ComponentActivity() {
 
         val stepTrackerViewModelFactory = StepTrackerViewModelFactory(activityRepository)
         val progressViewModelFactory = ProgressViewModelFactory(activityRepository)
+        val profileViewModelFactory = ProfileViewModelFactory()
 
         enableEdgeToEdge()
         setContent {
@@ -40,7 +41,8 @@ class MainActivity : ComponentActivity() {
                     AppNavigation(
                         foodViewModelFactory = foodViewModelFactory,
                         stepTrackerViewModelFactory = stepTrackerViewModelFactory,
-                        progressViewModelFactory = progressViewModelFactory
+                        progressViewModelFactory = progressViewModelFactory,
+                        profileViewModelFactory = profileViewModelFactory
                     )
                 }
             }
