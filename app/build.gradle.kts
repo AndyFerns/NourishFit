@@ -156,4 +156,6 @@ dependencies {
     androidTestImplementation(platform("androidx.compose:compose-bom:2025.01.00"))
     androidTestImplementation("androidx.compose.ui:ui-test-junit4")
 
+    // --- for the animated splash screen ---
+    implementation("androidx.core:core-splashscreen:1.0.1")
 }
