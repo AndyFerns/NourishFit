@@ -44,10 +44,10 @@ data class Workout(
 )
 
 val workoutPlans = listOf(
-    Workout(1, "Full Body Strength", "Comprehensive workout for all muscle groups.", "https://placehold.co/600x400/222/FFF?text=Workout+1", 45, "Intermediate", "Strength"),
-    Workout(2, "Cardio Blast", "High-intensity interval training.", "https://placehold.co/600x400/333/FFF?text=Workout+2", 30, "Hard", "Cardio"),
-    Workout(3, "Upper Body Focus", "Target your chest, back, and arms.", "https://placehold.co/600x400/444/FFF?text=Workout+3", 40, "Intermediate", "Strength"),
-    Workout(4, "Core & Flexibility", "Improve your core strength and flexibility.", "https://placehold.co/600x400/555/FFF?text=Workout+4", 25, "Beginner", "Flexibility")
+    Workout(1, "Full Body Strength", "Comprehensive workout for all muscle groups.", "https://images.pexels.com/photos/841130/pexels-photo-841130.jpeg?auto=compress&cs=tinysrgb&w=600", 45, "Intermediate", "Strength"), // Person lifting weights, clear and direct
+    Workout(2, "Cardio Blast", "High-intensity interval training.", "https://images.pexels.com/photos/2294361/pexels-photo-2294361.jpeg?auto=compress&cs=tinysrgb&w=600", 30, "Hard", "Cardio"), // Dynamic running shot
+    Workout(3, "Upper Body Focus", "Target your chest, back, and arms.", "https://images.pexels.com/photos/7031705/pexels-photo-7031705.jpeg?auto=compress&cs=tinysrgb&w=600", 40, "Intermediate", "Strength"), // Person doing push-ups or bench press
+    Workout(4, "Core & Flexibility", "Improve your core strength and flexibility.", "https://images.pexels.com/photos/3822622/pexels-photo-3822622.jpeg?auto=compress&cs=tinysrgb&w=600", 25, "Beginner", "Flexibility") // Person stretching or doing yoga
 )
 
 // --- NEW: Filter categories for the chips ---
