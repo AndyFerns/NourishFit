@@ -9,6 +9,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import com.example.nourishfit.navigation.AppNavigation
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.example.nourishfit.ui.theme.NourishFitTheme
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
@@ -17,6 +18,8 @@ import com.example.nourishfit.ui.viewmodel.ProfileViewModelFactory
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        // Splash Screen effect
+        installSplashScreen()
         super.onCreate(savedInstanceState)
 
         // getter for repo from single app interface
