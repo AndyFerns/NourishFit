@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +35,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.nourishfit.data.db.FoodEntity
+import com.example.nourishfit.data.db.PresetFood
+import com.example.nourishfit.data.db.presetFoodList
 import com.example.nourishfit.ui.viewmodel.FoodViewModel
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
@@ -77,7 +80,8 @@ fun DietTrackerScreenContent(
     var showManualAddDialog by remember { mutableStateOf(false) }
     val showScannedFoodDialog = prefilledFoodName != null
 
-    var searchQuery by remember { mutableStateOf("") }
+    // TODO: add search bar functionality by using WebAPIs
+//    var searchQuery by remember { mutableStateOf("") }
 
     // Removed launch effect waiting for the result
 
@@ -91,7 +95,8 @@ fun DietTrackerScreenContent(
             item {
                 DaySwitcher(currentDate) { newDate -> viewModel.changeDate(newDate) }
                 Spacer(Modifier.height(8.dp))
-                SearchBar(query = searchQuery, onQueryChange = { searchQuery = it })
+                // temporarily removed search bar
+//                SearchBar(query = searchQuery, onQueryChange = { searchQuery = it })
                 Spacer(Modifier.height(16.dp))
 
                 // --- THE FIX: Pass all macros to the summary card ---
@@ -105,12 +110,13 @@ fun DietTrackerScreenContent(
                 Spacer(Modifier.height(24.dp))
             }
 
-            val filteredItems = foodItems.filter { it.name.contains(searchQuery, ignoreCase = true) }
+                // list is no longer filtered by search items
+//            val filteredItems = foodItems.filter { it.name.contains(searchQuery, ignoreCase = true) }
 
-            if (filteredItems.isEmpty()) {
+            if (foodItems.isEmpty()) {
                 item { EmptyState() }
             } else {
-                val groupedMeals = filteredItems.groupBy { it.name.categorizeFood() }
+                val groupedMeals = foodItems.groupBy { it.name.categorizeFood() }
                 groupedMeals.forEach { (mealType, items) ->
                     item { MealHeader(mealType = mealType) }
                     items(items, key = { it.id }) { foodItem ->
@@ -287,6 +293,7 @@ fun FoodListItem(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddFoodDialog(
     prefilledFoodName: String?,
@@ -299,11 +306,48 @@ fun AddFoodDialog(
     var carbs by remember { mutableStateOf("") }
     var fat by remember { mutableStateOf("") }
 
+    var searchQuery by remember { mutableStateOf("") }
+
+    fun selectFood(food: PresetFood) {
+        name = food.name
+        calories = food.calories.toString()
+        protein = food.protein.toString()
+        carbs = food.carbs.toString()
+        fat = food.fat.toString()
+    }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Add New Food") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+
+                OutlinedTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = { Text("Search quick-add foods...") },
+                    leadingIcon = { Icon(Icons.Outlined.Search, null) },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                LazyRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val filteredList = presetFoodList.filter {
+                        it.name.contains(searchQuery, ignoreCase = true)
+                    }
+                    items(filteredList) { food ->
+                        FilterChip(
+                            selected = false,
+                            onClick = { selectFood(food) },
+                            label = { Text(food.name) }
+                        )
+                    }
+                }
+
+                HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -317,7 +361,6 @@ fun AddFoodDialog(
                     leadingIcon = { Icon(Icons.Outlined.LocalFireDepartment, null) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number)
                 )
-                // --- NEW: Macro input fields ---
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedTextField(
                         value = protein,
@@ -398,10 +441,27 @@ fun EmptyState() {
         Text("Tap the '+' button to add your first meal.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
+
+// removed search bar temporarily until actually implemented WebAPI parsing
+//@Composable
+//fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
+//    OutlinedTextField(query, onQueryChange, label = { Text("Search foods...") }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), leadingIcon = { Icon(Icons.Outlined.Search, "Search") }, shape = RoundedCornerShape(50))
+//}
+
 @Composable
-fun SearchBar(query: String, onQueryChange: (String) -> Unit) {
-    OutlinedTextField(query, onQueryChange, label = { Text("Search foods...") }, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp), leadingIcon = { Icon(Icons.Outlined.Search, "Search") }, shape = RoundedCornerShape(50))
+fun MainScreenSearchBar(query: String, onQueryChange: (String) -> Unit) {
+    OutlinedTextField(
+        value = query,
+        onValueChange = onQueryChange,
+        label = { Text("Search my logged foods...") }, // <-- Renamed label
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        leadingIcon = { Icon(Icons.Outlined.Search, "Search") },
+        shape = RoundedCornerShape(50)
+    )
 }
+
 @Composable
 fun DaySwitcher(currentDate: LocalDate, onDateChange: (LocalDate) -> Unit) {
     val context = LocalContext.current
