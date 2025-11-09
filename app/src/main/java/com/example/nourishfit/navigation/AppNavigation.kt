@@ -34,11 +34,16 @@ fun AppNavigation(
         startDestination = Screen.Home.route
     ) {
         composable(Screen.Home.route) {
-            HomeScreen(onStartTrackingClick = {
-                navController.navigate(Screen.App.route) {
-                    popUpTo(Screen.Home.route) { inclusive = true }
+            HomeScreen(
+                onStartTrackingClick = {
+                    navController.navigate(Screen.App.route) {
+                        popUpTo(Screen.Home.route) { inclusive = true }
+                    }
+                },
+                onLoginClick = {
+                    navController.navigate(Screen.Login.route)
                 }
-            })
+            )
         }
         composable(Screen.Login.route) {
             LoginScreen(
