@@ -39,3 +39,13 @@ class ProgressViewModelFactory(private val repository: ActivityRepository) : Vie
         throw IllegalArgumentException("Unknown ViewModel class: ProgressViewModel")
     }
 }
+
+class ProfileViewModelFactory : ViewModelProvider.Factory {
+    override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        if (modelClass.isAssignableFrom(ProfileViewModel::class.java)) {
+            @Suppress("UNCHECKED_CAST")
+            return ProfileViewModel() as T
+        }
+        throw IllegalArgumentException("Unknown Viewmodel class: ProfileViewModel")
+    }
+}
