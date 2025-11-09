@@ -1,8 +1,22 @@
 package com.example.nourishfit.ui.screens
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -11,17 +25,27 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.nourishfit.R // Make sure you have an image in your drawable folder
+import com.example.nourishfit.R
 import kotlinx.coroutines.delay
 
 @Composable
-fun HomeScreen(onStartTrackingClick: () -> Unit) {
-    // get animation state
-    var isAnimating by remember { mutableStateOf(false) }
+fun HomeScreen(
+    onStartTrackingClick: () -> Unit,
+    // --- NEW: Add a parameter for the login button ---
+    onLoginClick: () -> Unit
+) {
+    var isButtonAnimating by remember { mutableStateOf(false) }
 
-    // get animation value
+    // --- NEW: State for the entrance animation ---
+    var contentVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        // Trigger the entrance animation when the screen first loads
+        contentVisible = true
+    }
+
     val scale by animateFloatAsState(
-        targetValue = if (isAnimating) 1.2f else 1.0f,
+        targetValue = if (isButtonAnimating) 1.2f else 1.0f,
         animationSpec = androidx.compose.animation.core.tween(
             durationMillis = 300,
             easing = androidx.compose.animation.core.FastOutSlowInEasing
@@ -29,15 +53,11 @@ fun HomeScreen(onStartTrackingClick: () -> Unit) {
         label = "Button Scale Animation"
     )
 
-    // only run coroutine when isAnimating == true
-    LaunchedEffect(key1 = isAnimating) {
-        if (isAnimating) {
-            // Wait for the animation to play (a little longer than the animation itself).
+    LaunchedEffect(key1 = isButtonAnimating) {
+        if (isButtonAnimating) {
             delay(400L)
-            // perform the navigation AFTER delay
             onStartTrackingClick()
-            // Reset the state for the next time the user visits the screen.
-            isAnimating = false
+            isButtonAnimating = false
         }
     }
 
@@ -49,19 +69,73 @@ fun HomeScreen(onStartTrackingClick: () -> Unit) {
                 .fillMaxSize()
                 .padding(innerPadding)
                 .padding(32.dp),
-            verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // It's a good idea to have a nice logo or image here.
-            // Make sure to add an image to your res/drawable folder.
-            // I'm assuming you have one named `ic_launcher_foreground`.
-            Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
-                contentDescription = "NourishFit Logo",
-                modifier = Modifier.size(150.dp)
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            // --- NEW: Content is wrapped in a weighted, centered Box ---
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.Center
+            ) {
+                // Call the animated intro function here
+                AnimatedIntro(contentVisible)
+            }
 
+            // --- This Column holds the buttons at the bottom ---
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Spacer(modifier = Modifier.height(32.dp))
+                Button(
+                    onClick = { isButtonAnimating = true },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .graphicsLayer {
+                            scaleX = scale
+                            scaleY = scale
+                        },
+                    enabled = !isButtonAnimating
+                ) {
+                    Text("Start Tracking")
+                }
+
+                // --- NEW: "Log In" button for existing users ---
+                TextButton(onClick = onLoginClick) {
+                    Text("Already have an account? Log In")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AnimatedIntro(contentVisible: Boolean) {
+    // --- NEW: Entrance animation ---
+    AnimatedVisibility(
+        visible = contentVisible,
+        enter = fadeIn(animationSpec = tween(1000)) +
+                slideInVertically(animationSpec = tween(1000), initialOffsetY = { it / 2 })
+    ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+
+            // --- FIX: Logo is now in a circular Surface ---
+            Surface(
+                modifier = Modifier.size(150.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer,
+                shadowElevation = 8.dp
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                    contentDescription = "NourishFit Logo",
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp) // Add padding so the logo fits inside
+                )
+            }
+            // --- END OF FIX ---
+
+            Spacer(modifier = Modifier.height(16.dp))
             Text(
                 text = "Welcome to NourishFit",
                 style = MaterialTheme.typography.headlineLarge,
@@ -74,29 +148,6 @@ fun HomeScreen(onStartTrackingClick: () -> Unit) {
                 textAlign = TextAlign.Center,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(48.dp))
-
-            Button(
-                onClick = {
-                    // --- 4. The Trigger ---
-                    // The button click ONLY starts the animation.
-                    // The LaunchedEffect will handle the navigation.
-                    isAnimating = true
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-                    // --- 5. Apply the Animation ---
-                    // The button's scale will now be driven by our animation value.
-                    .graphicsLayer {
-                        scaleX = scale
-                        scaleY = scale
-                    },
-                // The button is disabled while animating to prevent double-clicks.
-                enabled = !isAnimating
-            ) {
-                Text("Start Tracking")
-            }
         }
     }
 }
