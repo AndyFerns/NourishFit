@@ -4,12 +4,14 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.flowWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.navigation.compose.*
 import com.example.nourishfit.navigation.BottomNavItem
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
@@ -42,6 +44,9 @@ fun AppScreen(
 ) {
     // This is the NavController for the *inner* bottom bar navigation
     val navController = rememberNavController()
+
+    // for haptic feedback
+    val haptics = LocalHapticFeedback.current
 
     // --- THE FIX: Rename this variable to avoid the name collision ---
     val innerNavBackStackEntry by navController.currentBackStackEntryAsState()
@@ -113,6 +118,9 @@ fun AppScreen(
                         // --- THE FIX: Use the renamed variable here ---
                         selected = currentInnerDestination?.hierarchy?.any { it.route == screen.route } == true,
                         onClick = {
+                            // Haptic feedback implementation
+                            haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+
                             navController.navigate(screen.route) {
                                 popUpTo(navController.graph.findStartDestination().id) { saveState = true }
                                 launchSingleTop = true
