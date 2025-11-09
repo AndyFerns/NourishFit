@@ -15,6 +15,7 @@ import com.example.nourishfit.navigation.BottomNavItem
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
 import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
+import com.example.nourishfit.ui.viewmodel.ProfileViewModelFactory
 import com.google.firebase.auth.FirebaseAuth
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -23,12 +24,19 @@ fun AppScreen(
     foodViewModelFactory: FoodViewModelFactory,
     stepTrackerViewModelFactory: StepTrackerViewModelFactory,
     progressViewModelFactory: ProgressViewModelFactory,
+    profileViewModelFactory: ProfileViewModelFactory,
+
     // For the Login Screen
     onNavigateToLogin: () -> Unit,
     onLogout: () -> Unit,
+
     // For the Chatbot
     onNavigateToChat: () -> Unit,
     onNavigateToCamera: () -> Unit,
+
+    // For profile screen
+    onNavigateToProfile: () -> Unit,
+
     // This is the non-nullable NavBackStackEntry from the *outer* navigator
     navBackStackEntry: NavBackStackEntry
 ) {
@@ -42,7 +50,7 @@ fun AppScreen(
 
     var scannedFoodName by remember { mutableStateOf<String?>(null) }
 
-    // --- THIS NOW WORKS: It correctly references the non-nullable 'navBackStackEntry' parameter ---
+    // --- It correctly references the non-nullable 'navBackStackEntry' parameter ---
     LaunchedEffect(navBackStackEntry, navBackStackEntry.lifecycle) {
         val savedStateHandle = navBackStackEntry.savedStateHandle
         savedStateHandle.getStateFlow<String>("scannedFoodName", "")
@@ -144,7 +152,9 @@ fun AppScreen(
                 )
             }
             composable(BottomNavItem.Settings.route) {
-                SettingsScreenContent()
+                SettingsScreenContent(
+                    onNavigateToProfile = onNavigateToProfile
+                )
             }
         }
     }
