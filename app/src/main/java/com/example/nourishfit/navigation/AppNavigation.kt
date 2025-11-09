@@ -5,14 +5,11 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.nourishfit.ui.screens.AppScreen
-import com.example.nourishfit.ui.screens.CameraScreen
-import com.example.nourishfit.ui.screens.ChatScreen
-import com.example.nourishfit.ui.screens.HomeScreen
-import com.example.nourishfit.ui.screens.LoginScreen
+import com.example.nourishfit.ui.screens.*
 import com.example.nourishfit.ui.viewmodel.FoodViewModelFactory
 import com.example.nourishfit.ui.viewmodel.ProgressViewModelFactory
 import com.example.nourishfit.ui.viewmodel.StepTrackerViewModelFactory
+import com.example.nourishfit.ui.viewmodel.ProfileViewModelFactory
 
 sealed class Screen(val route: String) {
     object Login : Screen("login")
@@ -20,13 +17,15 @@ sealed class Screen(val route: String) {
     object App : Screen("app")
     object Chat : Screen("chat")
     object Camera : Screen("camera")
+    object Profile: Screen("profile")
 }
 
 @Composable
 fun AppNavigation(
     foodViewModelFactory: FoodViewModelFactory,
     stepTrackerViewModelFactory: StepTrackerViewModelFactory,
-    progressViewModelFactory: ProgressViewModelFactory
+    progressViewModelFactory: ProgressViewModelFactory,
+    profileViewModelFactory: ProfileViewModelFactory
 ) {
     val navController = rememberNavController()
 
@@ -60,6 +59,7 @@ fun AppNavigation(
                 foodViewModelFactory = foodViewModelFactory,
                 stepTrackerViewModelFactory = stepTrackerViewModelFactory,
                 progressViewModelFactory = progressViewModelFactory,
+                profileViewModelFactory = profileViewModelFactory,
 
                 onNavigateToLogin = {
                     navController.navigate(Screen.Login.route)
@@ -75,6 +75,9 @@ fun AppNavigation(
                 },
                 onNavigateToCamera = {
                     navController.navigate(Screen.Camera.route)
+                },
+                onNavigateToProfile = {
+                    navController.navigate(Screen.Profile.route)
                 },
                 // This gives AppScreen access to its own SavedStateHandle
                 navBackStackEntry = navBackStackEntry
@@ -98,6 +101,15 @@ fun AppNavigation(
                         ?.savedStateHandle
                         ?.set("scannedFoodName", foodName)
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Screen.Profile.route) {
+            ProfileScreen(
+                viewModelFactory = profileViewModelFactory,
+                onNavigateUp = {
+                    navController.navigateUp()
                 }
             )
         }
