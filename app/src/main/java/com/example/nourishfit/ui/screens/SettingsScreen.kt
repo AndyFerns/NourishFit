@@ -12,7 +12,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-// --- FIX: Add this import ---
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,13 +25,19 @@ import com.google.accompanist.permissions.rememberPermissionState
 import java.util.concurrent.TimeUnit
 
 @Composable
-fun SettingsScreenContent() {
+fun SettingsScreenContent(
+    onNavigateToProfile: () -> Unit
+) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(vertical = 16.dp)
     ) {
         item { SectionHeader("Account") }
-        item { SettingsItem("Profile", Icons.Default.Person) }
+        item { SettingsItem(
+            "Profile",
+            Icons.Default.Person,
+            onClick = onNavigateToProfile
+        ) }
 
         item { SectionHeader("Notifications (AI Alerts)") }
         item { DailyReminderToggle() }
